@@ -111,6 +111,26 @@ extern unsigned char USB_DEVICE_ADDRESS;
 /************************************************
  * **********************************************
  *
+ * SETUP PACKET
+ * (usb 2.0 specification, page 248, table 9-2)
+ *
+ * **********************************************
+ ************************************************/
+
+typedef struct
+{
+	unsigned char bmRequestType;
+	unsigned char bRequest;
+	unsigned short wValue;
+	unsigned short wIndex;
+	unsigned short wLength;
+} USB_SETUP_PACKET_t;
+
+
+
+/************************************************
+ * **********************************************
+ *
  * DESCRIPTORS
  * (usb 2.0 specification, page 251, table 9-5)
  *
