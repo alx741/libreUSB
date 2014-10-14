@@ -3,6 +3,9 @@
  * Compiler: sdcc (Version 3.4.0)
  *
  *
+ * [!] This file cotains USB interface definitions:
+ * 	   global variables and user functions
+ *
  * [!] This file cotains USB definitions described by
  * 	   usb 2.0 specification at usb.org
  *
@@ -25,6 +28,53 @@
 
 #ifndef _USB_H
 #define _USB_H
+
+
+/* #######################################################################
+ * ######################     INTERFACE     ##############################
+ * #######################################################################
+ */
+
+// DEVICE CURRENT STATE
+extern unsigned char USB_DEVICE_STATE;
+extern unsigned char USB_DEVICE_ADDRESS;
+extern unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
+
+
+// FUNCTIONS
+
+/* Handles USB requests, states and transactions
+ *
+ * Always call this function using an IRQ like this:
+ *
+ * 	void usb_isr(void) __shadowregs __interrupt 1
+ * 	{
+ * 		if(PIR2bits.USBIF)
+ * 		{
+ * 			usb_handler();
+ * 			PIR2bits.USBIF = 0;
+ * 		}
+ * 	}
+ *
+ */
+void usb_handler(void);
+
+/* Initializes the USB hardware */
+void usb_init(void);
+
+/* Returns a non-zero value if device has
+ * been enumerated by the pc, it is configured
+ * and ready for send and receive data
+ */
+int usb_is_configured(void);
+
+
+/* #######################################################################
+ * #######################################################################
+ * #######################################################################
+ */
+
+
 
 
 /************************************************
@@ -78,10 +128,6 @@
 #define USB_STATE_ADDRESS 0x04
 #define USB_STATE_CONFIGURED 0x05
 #define USB_STATE_SUSPENDED 0x06
-
-// DEVICE CURRENT STATE
-extern unsigned char USB_DEVICE_STATE;
-extern unsigned char USB_DEVICE_ADDRESS;
 
 
 
