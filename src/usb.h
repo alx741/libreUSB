@@ -43,6 +43,9 @@ extern unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 
 // FUNCTIONS
 
+/* Initializes the USB hardware */
+void usb_init(void);
+
 /* Handles USB requests, states and transactions
  *
  * Always call this function using an IRQ like this:
@@ -58,9 +61,6 @@ extern unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
  *
  */
 void usb_handler(void);
-
-/* Initializes the USB hardware */
-void usb_init(void);
 
 /* Returns a non-zero value if device has
  * been enumerated by the pc, it is configured
@@ -122,6 +122,7 @@ int usb_is_configured(void);
  ************************************************/
 
 // STATES
+#define USB_STATE_DETACHED 0x00
 #define USB_STATE_ATTACHED 0x01
 #define USB_STATE_POWERED 0x02
 #define USB_STATE_DEFAULT 0x03
