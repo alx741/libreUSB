@@ -1,0 +1,32 @@
+[!]  This project is under construction and it's NOT usable yet  [!]
+
+
+WHAT
+====
+
+This is a USB/CDC implementation for PIC18F4550 uC using SDCC compiler [link here].
+
+It allows to create a virtual serial port ( COM port ) to communicate with hardware
+over USB sending commands through it.
+
+
+USING
+=====
+
+
+
+
+UNDERSTANDING
+=============
+
+
+
+
+AUTOR
+=====
+
+Daniel Alejandro Campoverde Carrión [Alx741]
+
+mailto: alx741@riseup.net
+
+homepage: www.silly-bytes.blogspot.com 
