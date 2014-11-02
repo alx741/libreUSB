@@ -35,16 +35,19 @@
  * #######################################################################
  */
 
-// DEVICE CURRENT STATE
-extern unsigned char USB_DEVICE_STATE;
-extern unsigned char USB_DEVICE_ADDRESS;
-extern unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
+/**** DEVICE CURRENT STATE  ****/
+extern volatile unsigned char USB_DEVICE_STATE;
+extern volatile unsigned char USB_DEVICE_ADDRESS;
+extern volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 
 
-// FUNCTIONS
+
+
+/**** FUNCTIONS  ****/
 
 /* Initializes the USB hardware */
 void usb_init(void);
+
 
 /* Handles USB requests, states and transactions
  *
@@ -61,6 +64,7 @@ void usb_init(void);
  *
  */
 void usb_handler(void);
+
 
 /* Returns a non-zero value if device has
  * been enumerated by the pc, it is configured
@@ -322,7 +326,7 @@ typedef struct
 {
 	unsigned char bLength;
 	unsigned char bDescriptorType;
-	unsigned char bEndpointAddress
+	unsigned char bEndpointAddress;
 	unsigned char bmAttributes;
 	unsigned short wMaxPacketSize;
 	unsigned char bInterval;
