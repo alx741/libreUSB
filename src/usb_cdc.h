@@ -28,12 +28,17 @@
 #define _USB_CDC_H
 
 
-/* #######################################################################
- * ######################     INTERFACE     ##############################
- * #######################################################################
- */
 
-// DEFINITIONS
+/************************************************
+ * **********************************************
+ *
+ * CDC BUFFERS
+ * 64bytes RX, 64bytes TX
+ *
+ * **********************************************
+ ************************************************/
+
+// COM BUFFERS SIZES
 #define USB_CDC_RX_BUFFER_SIZE 64 // Data interface bulk out endpoint
 #define USB_CDC_TX_BUFFER_SIZE 64 // Data interface bulk in endpoint
 
@@ -41,38 +46,6 @@
 extern volatile unsigned char USB_CDC_RX_BUFFER[CDC_RX_BUFFER_SIZE];
 extern volatile unsigned char USB_CDC_TX_BUFFER[CDC_TX_BUFFER_SIZE];
 
-
-// FUNCTIONS
-
-/* Sends a character C to CDC_TX_BUFFER
- *
- * Returns a non-zero value if success
- */
-int usb_cdc_putc(char c);
-
-/* Returns a character from CDC_RX_BUFFER
- *
- * Block until a character has been received
- */
-char usb_cdc_getc(void);
-
-/* Sends a character string STR to CDC_TX_BUFFER
- *
- * Returns a non-zero value if success
- */
-int usb_cdc_puts(char *str);
-
-/* Reads a character string STR from CDC_RX_BUFFER
- *
- * Returns a non-zero value if success
- */
-int usb_cdc_gets(char *str);
-
-
-/* #######################################################################
- * #######################################################################
- * #######################################################################
- */
 
 
 
@@ -231,6 +204,10 @@ typedef struct
  * (usb 2.0, pstn specification, page 11, table 3)
  * ---------------------------------------------*/
 
+// Field: bmCapabilities
+#define USB_CDC_CALL_MANAGEMENT_BMCAPABILITIES 0x00 // Device does not handle call management itself
+
+
 typedef struct
 {
 	unsigned char bFunctionalLength;
@@ -245,6 +222,10 @@ typedef struct
  * ABSTRACT CONTROL MANAGEMENT FUNCTIONAL DESCRIPTOR
  * (usb 2.0, pstn specification, page 12, table 4)
  * ---------------------------------------------*/
+
+// Field: bmCapabilities
+#define USB_CDC_ACM_BMCAPABILITIES 0x02 // Support "line" requests
+
 
 typedef struct
 {

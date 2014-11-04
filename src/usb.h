@@ -3,9 +3,6 @@
  * Compiler: sdcc (Version 3.4.0)
  *
  *
- * [!] This file cotains USB interface definitions:
- * 	   global variables and user functions
- *
  * [!] This file cotains USB definitions described by
  * 	   usb 2.0 specification at usb.org
  *
@@ -30,54 +27,29 @@
 #define _USB_H
 
 
-/* #######################################################################
- * ######################     INTERFACE     ##############################
- * #######################################################################
- */
 
-/**** DEVICE CURRENT STATE  ****/
+/************************************************
+ * **********************************************
+ *
+ * STATE
+ * (usb 2.0 specification, page 241, table 9-1)
+ *
+ * **********************************************
+ ************************************************/
+
+// DEVICE CURRENT STATE
 extern volatile unsigned char USB_DEVICE_STATE;
 extern volatile unsigned char USB_DEVICE_ADDRESS;
 extern volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 
-
-
-
-/**** FUNCTIONS  ****/
-
-/* Initializes the USB hardware */
-void usb_init(void);
-
-
-/* Handles USB requests, states and transactions
- *
- * Always call this function using an IRQ like this:
- *
- * 	void usb_isr(void) __shadowregs __interrupt 1
- * 	{
- * 		if(PIR2bits.USBIF)
- * 		{
- * 			usb_handler();
- * 			PIR2bits.USBIF = 0;
- * 		}
- * 	}
- *
- */
-void usb_handler(void);
-
-
-/* Returns a non-zero value if device has
- * been enumerated by the pc, it is configured
- * and ready for send and receive data
- */
-int usb_is_configured(void);
-
-
-/* #######################################################################
- * #######################################################################
- * #######################################################################
- */
-
+// STATES
+#define USB_STATE_DETACHED 0x00
+#define USB_STATE_ATTACHED 0x01
+#define USB_STATE_POWERED 0x02
+#define USB_STATE_DEFAULT 0x03
+#define USB_STATE_ADDRESS 0x04
+#define USB_STATE_CONFIGURED 0x05
+#define USB_STATE_SUSPENDED 0x06
 
 
 
@@ -113,26 +85,6 @@ int usb_is_configured(void);
 #define USB_PID_SPECIAL_ERR 0x0C
 #define USB_PID_SPECIAL_SPLIT 0x08
 #define USB_PID_SPECIAL_PING 0x04
-
-
-
-/************************************************
- * **********************************************
- *
- * STATE
- * (usb 2.0 specification, page 241, table 9-1)
- *
- * **********************************************
- ************************************************/
-
-// STATES
-#define USB_STATE_DETACHED 0x00
-#define USB_STATE_ATTACHED 0x01
-#define USB_STATE_POWERED 0x02
-#define USB_STATE_DEFAULT 0x03
-#define USB_STATE_ADDRESS 0x04
-#define USB_STATE_CONFIGURED 0x05
-#define USB_STATE_SUSPENDED 0x06
 
 
 
