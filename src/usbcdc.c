@@ -377,7 +377,7 @@ __code CONFIGURATION_0 =
     sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_EP,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: In endpoint 2
     USB_EP_02_IN,
@@ -432,7 +432,7 @@ __code CONFIGURATION_0 =
     sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_EP,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: Out endpoint 3
     USB_EP_03_OUT,
@@ -455,7 +455,7 @@ __code CONFIGURATION_0 =
     sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_EP,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: In endpoint 3
     USB_EP_03_IN,
