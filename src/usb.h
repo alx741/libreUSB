@@ -3,8 +3,7 @@
  * Compiler: sdcc (Version 3.4.0)
  *
  *
- * [!] This file cotains USB definitions described by
- * 	   usb 2.0 specification at usb.org
+ * [!] This file contains USB definitions described by USB 2.0 specification
  *
  *
  *
@@ -28,14 +27,11 @@
 
 
 
-/************************************************
- * **********************************************
- *
- * STATE
- * (usb 2.0 specification, page 241, table 9-1)
- *
- * **********************************************
- ************************************************/
+/*******************************************************************************
+                                   USB STATE
+
+                 See USB 2.0 specification: page 241 table 9-1
+*******************************************************************************/
 
 // DEVICE CURRENT STATE
 extern volatile unsigned char USB_DEVICE_STATE;
@@ -51,16 +47,16 @@ extern volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 #define USB_STATE_CONFIGURED 0x05
 #define USB_STATE_SUSPENDED 0x06
 
+/*******************************************************************************
+*******************************************************************************/
 
 
-/************************************************
- * **********************************************
- *
- * PID values
- * (usb 2.0 specification, page 196, table 8-1)
- *
- * **********************************************
- ************************************************/
+
+/*******************************************************************************
+                                   PID VALUES
+
+                 See USB 2.0 specification: page 196 table 8-1
+*******************************************************************************/
 
 // Token PID's
 #define USB_PID_TOKEN_OUT 0x01
@@ -86,16 +82,16 @@ extern volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 #define USB_PID_SPECIAL_SPLIT 0x08
 #define USB_PID_SPECIAL_PING 0x04
 
+/*******************************************************************************
+*******************************************************************************/
 
 
-/************************************************
- * **********************************************
- *
- * REQUESTS
- * (usb 2.0 specification, page 251, table 9-4)
- *
- * **********************************************
- ************************************************/
+
+/*******************************************************************************
+                                    REQUESTS
+
+                 See USB 2.0 specification: page 251 table 9-4
+*******************************************************************************/
 
 #define USB_REQUEST_GET_STATUS 0x00
 #define USB_REQUEST_CLEAR_FEATURE 0x01
@@ -109,39 +105,40 @@ extern volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 #define USB_REQUEST_SET_INTERFACE 0x0B
 #define USB_REQUEST_SYNCH_FRAME 0x0C
 
+/*******************************************************************************
+*******************************************************************************/
 
 
-/************************************************
- * **********************************************
- *
- * SETUP PACKET
- * (usb 2.0 specification, page 248, table 9-2)
- *
- * **********************************************
- ************************************************/
+
+/*******************************************************************************
+                                  SETUP PACKET
+
+                 See USB 2.0 specification: page 248 table 9-2
+*******************************************************************************/
 
 typedef struct
 {
 	unsigned char bmRequestType;
 	unsigned char bRequest;
-	unsigned short wValue;
-	unsigned short wIndex;
+	unsigned char wValue0; // Low byte
+	unsigned char wValue1; // High byte
+	unsigned char wIndex0; // Low byte
+	unsigned char wIndex1; // High byte
 	unsigned short wLength;
 } USB_SETUP_PACKET_t;
 
+/*******************************************************************************
+*******************************************************************************/
 
 
-/************************************************
- * **********************************************
- *
- * DESCRIPTORS
- * (usb 2.0 specification, page 251, table 9-5)
- *
- * **********************************************
- ************************************************/
 
-// DESCRIPTOR TYPES
-// Field: bDescriptorType
+/*******************************************************************************
+                                  DESCRIPTORS
+
+                 See USB 2.0 specification: page 251 table 9-5
+*******************************************************************************/
+
+// Descriptor types used in field: bDescriptorType
 #define USB_DESCRIPTOR_TYPE_DEVICE 0x01
 #define USB_DESCRIPTOR_TYPE_CONFIGURATION 0x02
 #define USB_DESCRIPTOR_TYPE_STRING 0x03
@@ -149,10 +146,13 @@ typedef struct
 #define USB_DESCRIPTOR_TYPE_ENDPOINT 0x05
 
 
-/* ---------------------------------------------
- * DEVICE DESCRIPTOR
- * (usb 2.0 specification, page 262, table 9-8)
- * ---------------------------------------------*/
+
+/*
+ * ---------------------------------------------
+ *              DEVICE DESCRIPTOR
+ * See USB 2.0 specification: page 262 table 9-8
+ * ---------------------------------------------
+ */
 
 // Field: bcdUSB
 #define USB_DEVICE_BCDUSB 0x0200 // USB 2.0 compliant device
@@ -177,15 +177,19 @@ typedef struct
 } USB_DESCRIPTOR_DEVICE_t;
 
 
-/* ---------------------------------------------
- * CONFIGURATION DESCRIPTOR
- * (usb 2.0 specification, page 265, table 9-10)
- * ---------------------------------------------*/
+
+/*
+ * ----------------------------------------------
+ *          CONFIGURATION DESCRIPTOR
+ * See USB 2.0 specification: page 265 table 9-10
+ * ----------------------------------------------
+ */
 
 // Field: bmAttributes
-// This 2 attributes should be ORed 
-#define USB_CONFIGURATION_SELFPOWERED 0x40 // Self-Powered
-#define USB_CONFIGURATION_REMOTEWAKEUP 0x20 // Remote wake up
+// This attributes should be logical ORed
+#define USB_CONFIGURATION_BUSPOWERED 0x80
+#define USB_CONFIGURATION_REMOTEWAKEUP 0x20
+#define USB_CONFIGURATION_MAXPOWER 0x64 // 100 * (2mA units) = 200mA
 
 
 typedef struct
@@ -201,10 +205,13 @@ typedef struct
 } USB_DESCRIPTOR_CONFIGURATION_t;
 
 
-/* ---------------------------------------------
- * INTERFACE DESCRIPTOR
- * (usb 2.0 specification, page 268, table 9-12)
- * ---------------------------------------------*/
+
+/*
+ * ----------------------------------------------
+ *              INTERFACE DESCRIPTOR
+ * See USB 2.0 specification: page 268 table 9-12
+ * ----------------------------------------------
+ */
 
 typedef struct
 {
@@ -220,10 +227,13 @@ typedef struct
 } USB_DESCRIPTOR_INTERFACE_t;
 
 
-/* ---------------------------------------------
- * ENDPOINT DESCRIPTOR
- * (usb 2.0 specification, page 269, table 9-13)
- * ---------------------------------------------*/
+
+/*
+ * ----------------------------------------------
+ *              ENDPOINT DESCRIPTOR
+ * See USB 2.0 specification: page 269 table 9-13
+ * ----------------------------------------------
+ */
 
 // Field: bEndpointAddress
 #define USB_ENDPOINT_00_OUT 0x00
@@ -260,18 +270,18 @@ typedef struct
 #define USB_ENDPOINT_15_IN 0x8F
 
 // Field: bmAttributes
-// This 11 attributes should be ORed 
-#define USB_ENDPOINT_CONTROL 0x00 // Control transfer endpoint
-#define USB_ENDPOINT_ISOCHRONOUS 0x01 // Isochronous transfer endpoint
-#define USB_ENDPOINT_BULK 0x02 // Bulk transfer endpoint
-#define USB_ENDPOINT_INTERRUPT 0x03 // Interrupt transfer endpoint
-#define USB_ENDPOINT_NO_SYNCHRONIZATION 0x00 // No synchronization (Isochronous endpoints only)
-#define USB_ENDPOINT_ASYNCHRONOUS 0x04 // Asynchronous (Isochronous endpoints only)
-#define USB_ENDPOINT_ADAPTIVE 0x08 // Adaptive (Isochronous endpoints only)
-#define USB_ENDPOINT_SYNCHRONOUS 0x12 // Synchronous (Isochronous endpoints only)
-#define USB_ENDPOINT_DATA 0x00 // Data endpoint
-#define USB_ENDPOINT_FEEDBACK 0x10 // Feedback endpoint
-#define USB_ENDPOINT_IMPLICIT_FEEDBACK_DATA 0x20 // Implicit feedback data endpoint
+// This attributes should be logical ORed
+#define USB_ENDPOINT_CONTROL 0x00
+#define USB_ENDPOINT_ISOCHRONOUS 0x01
+#define USB_ENDPOINT_BULK 0x02
+#define USB_ENDPOINT_INTERRUPT 0x03
+#define USB_ENDPOINT_NO_SYNCHRONIZATION 0x00
+#define USB_ENDPOINT_ASYNCHRONOUS 0x04
+#define USB_ENDPOINT_ADAPTIVE 0x08
+#define USB_ENDPOINT_SYNCHRONOUS 0x12
+#define USB_ENDPOINT_DATA 0x00
+#define USB_ENDPOINT_FEEDBACK 0x10
+#define USB_ENDPOINT_IMPLICIT_FEEDBACK_DATA 0x20
 
 
 typedef struct
@@ -284,5 +294,7 @@ typedef struct
 	unsigned char bInterval;
 } USB_DESCRIPTOR_ENDPOINT_t;
 
+/*******************************************************************************
+*******************************************************************************/
 
 #endif // _USB_H
