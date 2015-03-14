@@ -3,10 +3,9 @@
  * Compiler: sdcc (Version 3.4.0)
  *
  *
- * [!] This file implements a USB/CDC device firmware
- *     for PIC18F4550 microcontroller, it allows to create
- *     a virtual serial (COM) port for data transmission with
- *     the PC over USB
+ * [!] This file implements a USB/CDC device firmware for PIC18F4550
+ * microcontroller, it allows to create a virtual serial (COM) port for data
+ * transmission with the PC over USB.
  *
  *
  *
@@ -32,38 +31,40 @@
 #include "usbcdc.h"
 
 
+/*******************************************************************************
+                              DEVICE CURRENT STATE
 
-/************************************************
-  DEVICE CURRENT STATE
- ***********************************************/
+                 See USB 2.0 specification: page 241, table 9-1
+*******************************************************************************/
 
 volatile unsigned char USB_DEVICE_STATE;
 volatile unsigned char USB_DEVICE_ADDRESS;
 volatile unsigned char USB_DEVICE_CURRENT_CONFIGURATION;
 
-/************************************************
- ***********************************************
- ***********************************************/
+/*******************************************************************************
+*******************************************************************************/
 
 
 
-/************************************************
-  USB handling functions
- ***********************************************/
+/*******************************************************************************
+                             USB handling functions
 
-// General usb Handler
+                       See PIC18F4550 datasheet: page 177
+*******************************************************************************/
+
+// General USB Handler
 void usb_handler(void);
 
-    // Interrupt handling (pic18f4550 datasheet, page 178)
-    static void handle_actvif(void); 
-    static void handle_idleif(void); 
-    static void handle_stallif(void); 
-    static void handle_uerrif(void); 
-    static void handle_sofif(void); 
-    static void handle_urstif(void); 
+    // Interrupt handling
+    static void handle_actvif(void);
+    static void handle_idleif(void);
+    static void handle_stallif(void);
+    static void handle_uerrif(void);
+    static void handle_sofif(void);
+    static void handle_urstif(void);
 
     // Transactions handling (By endpoint)
-    static void handle_trnif(void); 
+    static void handle_trnif(void);
 
         // Control transfers handling
         static void control_transfer_handler(void);
@@ -73,30 +74,32 @@ void usb_handler(void);
             static void handle_request_clear_feature(void);
             static void handle_request_set_feature(void);
             static void handle_request_set_address(void);
-            static void handle_request_get_descriptor(void);
+            static void handle_request_get_descriptor(unsigned char
+                    **descriptor, unsigned char *size);
             static void handle_request_get_configuration(void);
             static void handle_request_set_configuration(void);
             static void handle_request_get_interface(void);
             static void handle_request_set_interface(void);
 
 
-/************************************************
- ***********************************************
- ***********************************************/
+/*******************************************************************************
+*******************************************************************************/
 
 
 
 
 
-/*********************************************************
-    ENDPOINT 0 definition 
+/*******************************************************************************
+                             ENDPOINT 0 definition
 
-    Enpoint 0 out buffer starts at 0500h in data memory,
-    is 8 bytes long [0500h - 0507h] 
+    Endpoint 0 out buffer starts at 0500h in data memory,
+    is 8 bytes long [0500h - 0507h]
 
-    Enpoint 1 out buffer starts at 0508h in data memory,
-    is 64 bytes long [0508h - 056Bh] 
- *******************************************************/
+    Endpoint 0 out buffer starts at 0508h in data memory,
+    is 64 bytes long [0508h - 056Bh]
+
+                       See PIC18F4550 datasheet: page 170
+*******************************************************************************/
 
 // EP0 Buffer size in bytes
 #define EP0_OUT_BUFFER_SIZE 8 // SetUp packet size
@@ -106,7 +109,7 @@ void usb_handler(void);
 #define ENDPOINT0_OUT_BUFFER  0x0500
 #define ENDPOINT0_IN_BUFFER  0x0508
 
-// Endpoint 0 buffer descritors allocation
+// Endpoint 0 buffer descriptors allocation
 volatile BUFFER_DESCRIPTOR_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
 volatile BUFFER_DESCRIPTOR_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
 
@@ -114,202 +117,395 @@ volatile BUFFER_DESCRIPTOR_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
 volatile USB_SETUP_PACKET_t __at(ENDPOINT0_OUT_BUFFER) SETUP_PACKET;
 
 
-/******************************************************
- ******************************************************
- ******************************************************/
+/*******************************************************************************
+*******************************************************************************/
 
 
 
 
 
-/*********************************************************
-    DESCRIPTORS definition 
+/*******************************************************************************
+                             DESCRIPTORS definitions
 
-    This descriptors describe a CDC/ACM device with 1
-    configuration only
+    Describe a CDC/ACM device with 1 configuration only
 
- *******************************************************/
+    * Descriptors are placed into code memory so we can safe a lot of RAM
 
-/* DEVICE DESCRIPTOR
+*******************************************************************************/
 
-    This is a CDC Device class
-    with one configuration only
+
+/*
+ * DEVICE DESCRIPTOR
+ *
+ * This is a CDC Device class descriptor with one configuration only
 */
-__code USB_DESCRIPTOR_DEVICE_t DEVICE_DESCRIPTOR;
-
-DEVICE_DESCRIPTOR.bLength = sizeof(USB_DESCRIPTOR_DEVICE_t); // Total device descriptor size
-DEVICE_DESCRIPTOR.bDescriptorType = USB_DESCRIPTOR_TYPE_DEVICE; // Device descriptor
-DEVICE_DESCRIPTOR.bcdUSB = USB_DEVICE_BCDUSB; // USB 2.0 compliant device
-DEVICE_DESCRIPTOR.bDeviceClass = USB_CDC_CLASS_DEVICE; // CDC device Class
-DEVICE_DESCRIPTOR.bDeviceSubClass = 0x00; // No device SubClass
-DEVICE_DESCRIPTOR.bDeviceProtocol = 0x00; // No device Protocol
-DEVICE_DESCRIPTOR.bMaxPacketSize0 = EP0_OUT_BUFFER_SIZE; // Max End Point 0 packet size is End Point 0 Buffer size
-DEVICE_DESCRIPTOR.idVendor = 0x04D8; // Using the "Microchip" Vendor ID
-DEVICE_DESCRIPTOR.idProduct = 0x0111 // Using arbitrary Product ID
-DEVICE_DESCRIPTOR.bcdDevice = 0x0000 // No device version
-DEVICE_DESCRIPTOR.iManufacturer = 0x01 // Manufacturer description text
-DEVICE_DESCRIPTOR.iProduct = 0x02 // Product description text
-DEVICE_DESCRIPTOR.iSerialNumber = 0x00 // No serial number text
-DEVICE_DESCRIPTOR.bNumConfigurations = 0x01 // This device has one configuration only
-
-
-
-
-
-/* CONFIGURATION DESCRIPTOR
-
-    This device has one configuration only
-
-    This a USB/CDC (Communications Device Class) configuration
-
-    The configuration descriptor should contain the complete 
-    interface, endpoint and class specific descriptors hierarchy
-
-    CONFIGURATION (USB/CDC):
-        - Configuration Descriptor
-            - Interface Descriptor (Communications)
-                - Functional Desciptor (Header)
-                - Functional Desciptor (ACM)
-                - Functional Desciptor (Union)
-                - Functional Desciptor (Call Management)
-                - EndPoint Desciptor (Notification Element)
-            - Interface Desciptor (Data)
-                - EndPoint Desciptor (Data Out)
-                - EndPoint Desciptor (Data In)
-
-*/
-
-typedef struct
+__code USB_DESCRIPTOR_DEVICE_t DEVICE_DESCRIPTOR =
 {
-    USB_DESCRIPTOR_CONFIGURATION_t                                              CONFIGURATION_DESCRIPTOR;
+    // bLength: Total device descriptor size
+    sizeof(USB_DESCRIPTOR_DEVICE_t),
 
-        USB_DESCRIPTOR_INTERFACE_t                                                  INTERFACE_DESCRIPTOR_COMMUNICATIONS;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t                                      FUNCTIONAL_DESCRIPTOR_HEADER;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t                 FUNCTIONAL_DESCRIPTOR_ACM;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t                                       FUNCTIONAL_DESCRIPTOR_UNION;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t                             FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT;
-            USB_DESCRIPTOR_ENDPOINT_t                                                   ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT;
+    // bDescriptorType: Device descriptor
+    USB_DESCRIPTOR_TYPE_DEVICE,
 
-        USB_DESCRIPTOR_INTERFACE_t                                                  INTERFACE_DESCRIPTOR_DATA;
-            USB_DESCRIPTOR_ENDPOINT_t                                                   ENDPOINT_DESCRIPTOR_OUT;
-            USB_DESCRIPTOR_ENDPOINT_t                                                   ENDPOINT_DESCRIPTOR_IN; 
-} CONFIGURATION_0_;
+    // bcdUSB: USB 2.0 compliant device
+    USB_DEVICE_BCDUSB,
 
+    // bDeviceClass: CDC device Class
+    USB_CDC_CLASS_DEVICE,
 
+    // bDeviceSubClass: No device SubClass
+    0x00,
 
+    // bDeviceProtocol: No device Protocol
+    0x00,
 
-/*  CONFIGURATION  ( Contains whole configuration descriptors hierarchy )  */
-__code CONFIGURATION_0_ CONFIGURATION_0;
+    // bMaxPacketSize0: Max End Point 0 packet size is End Point 0 Buffer size
+    EP0_OUT_BUFFER_SIZE,
 
-// CONFIGURATION_DESCRIPTOR
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bLength = sizeof(USB_DESCRIPTOR_CONFIGURATION_t); // Configuration Descriptor size
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bDescriptorType = USB_DESCRIPTOR_TYPE_CONFIGURATION; // Configuration descriptor
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.wTotalLength = sizeof(CONFIGURATION_0_); // Whole configuration hierarchy size
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bNumInterfaces = 0x02; // This configuration has 2 interfaces
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bConfigurationValue = 0x01; // Index value for this configuration
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.iConfiguration = 0x00; // No configuration description text
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bmAttributes = 0x80; // Bus Powered configuration
-CONFIGURATION_0.CONFIGURATION_DESCRIPTOR.bMaxPower = 0x64; // This configuration takes up to 100mA from the bus
+    // idVendor: Using the "Microchip" Vendor ID
+    0x04D8,
 
-// INTERFACE_DESCRIPTOR_COMMUNICATIONS
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bLength = sizeof(USB_DESCRIPTOR_INTERFACE_t); // Interface Descriptor size
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE; // Interface descriptor
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bInterfaceNumber = 0x00; // This is interface 0
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bAlternateSetting = 0x00; // Alternate setting number
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bNumEndpoints = 0x01; // This interface has 1 endpoint
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bInterfaceClass = USB_CDC_CLASS_INTERFACE_COM; // Communications interface class
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bInterfaceSubClass = USB_CDC_SUBCLASS_INTERFACE_ACM; // Abstract Control Model sub class
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.bInterfaceProtocol = USB_CDC_PROTOCOL_INTERFACE_V250; // V250 protocol
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_COMMUNICATIONS.iInterface = 0x00; // No interface description text
+    // idProduct: Using arbitrary Product ID
+    0x0111,
 
-// FUNCTIONAL_DESCRIPTOR_HEADER
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_HEADER.bFunctionalLength = sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t); // Header FD size
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_HEADER.bDescriptorType = USB_CDC_FUNCTIONAL_CS_INTERFACE; // Interface descriptor type
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_HEADER.bDescriptorSubType = USB_CDC_FUNCTIONAL_HEADER; // Header FD
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_HEADER.bcdCDC = USB_CDC_HEADER_BCDUSB; // USB CDC 1.2 compliant
+    // bcdDevice: No device version
+    0x0000,
 
-// FUNCTIONAL_DESCRIPTOR_ACM
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bFunctionalLength = sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t); // ACM FD size
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bDescriptorType = USB_CDC_FUNCTIONAL_CS_INTERFACE; // Interface descriptor type
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bDescriptorSubType = USB_CDC_FUNCTIONAL_ACM; // ACM FD
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bmCapabilities = USB_CDC_ACM_BMCAPABILITIES; // Support "line" requests
+    // iManufacturer: Manufacturer description text
+    0x01,
 
-// FUNCTIONAL_DESCRIPTOR_UNION
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bFunctionalLength = sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t); // Union FD size
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bDescriptorType = USB_CDC_FUNCTIONAL_CS_INTERFACE; // Interface descriptor type
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bDescriptorSubType = USB_CDC_FUNCTIONAL_UNION; // Union FD
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bControlInterface = 0x00; // Interface 0 is the control interface (communications class)
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_ACM.bSubordinateInterface0 = 0x01; // Interface 1 is subordinate (data class)
+    // iProduct: Product description text
+    0x02,
 
-// FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT.bFunctionalLength = sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t) // CM FD size
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT.bDescriptorType = USB_CDC_FUNCTIONAL_CS_INTERFACE; // Interface descriptor type
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT.bDescriptorSubType = USB_CDC_FUNCTIONAL_CALL_MANAGEMENT; // CM FD
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT.bmCapabilities = USB_CDC_CALL_MANAGEMENT_BMCAPABILITIES; // Don't handle call management
-CONFIGURATION_0.FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT.bDataInterface = 0x01; // Interface 1 is data class
+    // iSerialNumber: No serial number text
+    0x00,
 
-// ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.bLength = sizeof(USB_DESCRIPTOR_ENDPOINT_t); // Endpoint descriptor size
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.bDescriptorType = USB_DESCRIPTOR_TYPE_ENDPOINT; // Endpoint descriptor
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.bEndpointAddress = USB_ENDPOINT_02_IN; // In endpoint 2
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.bmAttributes = USB_ENDPOINT_INTERRUPT; // Interrupt endpoint
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.wMaxPacketSize = 0x40; // 64 bytes max packet
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT.bInterval = 0x02; // Poll every 2 milliseconds
-
-// INTERFACE_DESCRIPTOR_DATA
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bLength = sizeof(USB_DESCRIPTOR_INTERFACE_t); // Interface descriptor size
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE; // Interface descriptor
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bInterfaceNumber = 0x01; // This is interface 1
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bAlternateSetting = 0x00 // Alternate setting number
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bNumEndpoints = 0x02 // This interface has 2 endpoints
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bInterfaceClass = USB_CDC_CLASS_INTERFACE_DAT; // Data interface class
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bInterfaceSubClass = USB_CDC_SUBCLASS_INTERFACE_NONE; // No interface class
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.bInterfaceProtocol = USB_CDC_PROTOCOL_INTERFACE_NONE; // No interface protocol
-CONFIGURATION_0.INTERFACE_DESCRIPTOR_DATA.iInterface = 0x00; // No interface description text
-
-// ENDPOINT_DESCRIPTOR_OUT
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.bLength = sizeof(USB_DESCRIPTOR_ENDPOINT_t); // Endpoint descriptor size
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.bDescriptorType = USB_DESCRIPTOR_TYPE_ENDPOINT; // Endpoint descriptor
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.bEndpointAddress = USB_ENDPOINT_03_OUT; // Out endpoint 3
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.bmAttributes = USB_ENDPOINT_BULK; // Bulk endpoint
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.wMaxPacketSize = 0x40; // 64 bytes max packet
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_OUT.bInterval = 0x00; // Poll as fast as possible
-
-// ENDPOINT_DESCRIPTOR_IN
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.bLength = sizeof(USB_DESCRIPTOR_ENDPOINT_t); // Endpoint descriptor size
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.bDescriptorType = USB_DESCRIPTOR_TYPE_ENDPOINT; // Endpoint descriptor
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.bEndpointAddress = USB_ENDPOINT_03_IN; // In endpoint 3
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.bmAttributes = USB_ENDPOINT_BULK; // Bulk endpoint
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.wMaxPacketSize = 0x40; // 64 bytes max packet
-CONFIGURATION_0.ENDPOINT_DESCRIPTOR_IN.bInterval = 0x00; // Poll as fast as possible
+    // bNumConfigurations: This device has one configuration only
+    0x01
+};
 
 
 
 
-/* STRING DESCRIPTORS
 
-   2 bytes coding caracters
-
-   String descriptor 0 = Supported Languages
-   String descriptor 1 = iManufacturer
-   String descriptor 2 = iProduct
+/*
+ * CONFIGURATION DESCRIPTOR
+ *
+ * This device has one configuration only
+ *
+ * This a USB/CDC (Communications Device Class) configuration
+ *
+ * The configuration descriptor should contain the complete interface, endpoint
+ * and class specific descriptors hierarchy
+ *
+ * CONFIGURATION DESCRIPTOR hierarchy (USB/CDC):
+ *     - Configuration Descriptor
+ *         - Interface Descriptor (Communications)
+ *             - Functional Descriptor (Header)
+ *             - Functional Descriptor (ACM)
+ *             - Functional Descriptor (Union)
+ *             - Functional Descriptor (Call Management)
+ *             - EndPoint Descriptor (Notification Element)
+ *         - Interface Descriptor (Data)
+ *             - EndPoint Descriptor (Data Out)
+ *             - EndPoint Descriptor (Data In)
 */
 
+struct
+{
+    USB_DESCRIPTOR_CONFIGURATION_t CONFIGURATION_DESCRIPTOR;
+
+        USB_DESCRIPTOR_INTERFACE_t INTERFACE_DESCRIPTOR_COMMUNICATIONS;
+            USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t FUNCTIONAL_DESCRIPTOR_HEADER;
+            USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t FUNCTIONAL_DESCRIPTOR_ACM;
+            USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t FUNCTIONAL_DESCRIPTOR_UNION;
+            USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT;
+            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT;
+
+        USB_DESCRIPTOR_INTERFACE_t INTERFACE_DESCRIPTOR_DATA;
+            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_OUT;
+            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_IN;
+}
+
+
+/*
+ * CONFIGURATION
+ *
+ * Contains whole configuration descriptors hierarchy
+ */
+__code CONFIGURATION_0 =
+{
+                         /* CONFIGURATION_DESCRIPTOR */
+    {
+    // bLength:             Configuration Descriptor size
+    sizeof(USB_DESCRIPTOR_CONFIGURATION_t),
+
+    // bDescriptorType:     Configuration descriptor
+    USB_DESCRIPTOR_TYPE_CONFIGURATION,
+
+    // wTotalLength:        Whole configuration hierarchy size
+    sizeof(CONFIGURATION_0),
+
+    // bNumInterfaces:      This configuration has 2 interfaces
+    0x02,
+
+    // bConfigurationValue: Index value for this configuration
+    0x01,
+
+    // iConfiguration:      No configuration description text
+    0x00,
+
+    // bmAttributes:        Bus Powered configuration
+    USB_CONFIGURATION_BUSPOWERED,
+
+    // bMaxPower:           This configuration takes up to 200mA from the bus
+    USB_CONFIGURATION_MAXPOWER
+    },
+
+
+
+                   /* INTERFACE_DESCRIPTOR_COMMUNICATIONS */
+    {
+    // bLength: Interface Descriptor size
+    sizeof(USB_DESCRIPTOR_INTERFACE_t),
+
+    // bDescriptorType: Interface descriptor
+    USB_DESCRIPTOR_TYPE_INTERFACE,
+
+    // bInterfaceNumber: This is interface 0
+    0x00,
+
+    // bAlternateSetting: Alternate setting number
+    0x00,
+
+    // bNumEndpoints: This interface has 1 endpoint
+    0x01,
+
+    // bInterfaceClass: Communications interface class
+    USB_CDC_CLASS_INTERFACE_COM,
+
+    // bInterfaceSubClass: Abstract Control Model sub class
+    USB_CDC_SUBCLASS_INTERFACE_ACM,
+
+    // bInterfaceProtocol: V250 protocol
+    USB_CDC_PROTOCOL_INTERFACE_V250,
+
+    // iInterface: No interface description text
+    0x00
+    },
+
+
+
+                       /* FUNCTIONAL_DESCRIPTOR_HEADER */
+    {
+    // bFunctionalLength: Header FD size
+    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t),
+
+    // bDescriptorType: Interface descriptor type
+    USB_CDC_FUNCTIONAL_CS_INTERFACE,
+
+    // bDescriptorSubType: Header FD
+    USB_CDC_FUNCTIONAL_HEADER,
+
+    // bcdCDC: USB CDC 1.2 compliant
+    USB_CDC_HEADER_BCDUSB
+    },
+
+
+
+                        /* FUNCTIONAL_DESCRIPTOR_ACM */
+    {
+    // bFunctionalLength: ACM FD size
+    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t),
+
+    // bDescriptorType: Interface descriptor type
+    USB_CDC_FUNCTIONAL_CS_INTERFACE,
+
+    // bDescriptorSubType: ACM FD
+    USB_CDC_FUNCTIONAL_ACM,
+
+    // bmCapabilities: Support "line" requests
+    USB_CDC_ACM_BMCAPABILITIES
+    },
+
+
+
+                       /* FUNCTIONAL_DESCRIPTOR_UNION */
+    {
+    // bFunctionalLength: Union FD size
+    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t),
+
+    // bDescriptorType: Interface descriptor type
+    USB_CDC_FUNCTIONAL_CS_INTERFACE,
+
+    // bDescriptorSubType: Union FD
+    USB_CDC_FUNCTIONAL_UNION,
+
+    // bControlInterface: Interface 0 is the control interface
+    // (communication class)
+    0x00,
+
+    // bSubordinateInterface0: Interface 1 is subordinate (data class)
+    0x01
+    },
+
+
+
+                  /* FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT */
+    {
+    // bFunctionalLength: CM FD size
+    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t),
+
+    // bDescriptorType: Interface descriptor type
+    USB_CDC_FUNCTIONAL_CS_INTERFACE,
+
+    // bDescriptorSubType: CM FD
+    USB_CDC_FUNCTIONAL_CALL_MANAGEMENT,
+
+    // bmCapabilities: Don't handle call management
+    USB_CDC_CALL_MANAGEMENT_BMCAPABILITIES,
+
+    // bDataInterface: Interface 1 is data class
+    0x01
+    },
+
+
+
+                 /* ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT */
+    {
+    // bLength: Endpoint descriptor size
+    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+
+    // bDescriptorType: Endpoint descriptor
+    USB_DESCRIPTOR_TYPE_ENDPOINT,
+
+    // bEndpointAddress: In endpoint 2
+    USB_ENDPOINT_02_IN,
+
+    // bmAttributes: Interrupt endpoint
+    USB_ENDPOINT_INTERRUPT,
+
+    // wMaxPacketSize: 64 bytes max packet
+    0x40,
+
+    // bInterval: Poll every 2 milliseconds
+    0x02
+    },
+
+
+
+                        /* INTERFACE_DESCRIPTOR_DATA */
+    {
+    // bLength: Interface descriptor size
+    sizeof(USB_DESCRIPTOR_INTERFACE_t),
+
+    // bDescriptorType: Interface descriptor
+    USB_DESCRIPTOR_TYPE_INTERFACE,
+
+    // bInterfaceNumber: This is interface 1
+    0x01,
+
+    // bAlternateSetting: Alternate setting number
+    0x00,
+
+    // bNumEndpoints: This interface has 2 endpoints
+    0x02,
+
+    // bInterfaceClass: Data interface class
+    USB_CDC_CLASS_INTERFACE_DAT,
+
+    // bInterfaceSubClass: No interface class
+    USB_CDC_SUBCLASS_INTERFACE_NONE,
+
+    // bInterfaceProtocol: No interface protocol
+    USB_CDC_PROTOCOL_INTERFACE_NONE,
+
+    // iInterface: No interface description text
+    0x00
+    },
+
+
+
+                         /* ENDPOINT_DESCRIPTOR_OUT */
+    {
+    // bLength: Endpoint descriptor size
+    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+
+    // bDescriptorType: Endpoint descriptor
+    USB_DESCRIPTOR_TYPE_ENDPOINT,
+
+    // bEndpointAddress: Out endpoint 3
+    USB_ENDPOINT_03_OUT,
+
+    // bmAttributes: Bulk endpoint
+    USB_ENDPOINT_BULK,
+
+    // wMaxPacketSize: 64 bytes max packet
+    USB_CDC_RX_BUFFER_SIZE,
+
+    // bInterval: Poll as fast as possible
+    0x00
+    },
+
+
+
+                          /* ENDPOINT_DESCRIPTOR_IN */
+    {
+    // bLength: Endpoint descriptor size
+    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+
+    // bDescriptorType: Endpoint descriptor
+    USB_DESCRIPTOR_TYPE_ENDPOINT,
+
+    // bEndpointAddress: In endpoint 3
+    USB_ENDPOINT_03_IN,
+
+    // bmAttributes: Bulk endpoint
+    USB_ENDPOINT_BULK,
+
+    // wMaxPacketSize: 64 bytes max packet
+    USB_CDC_TX_BUFFER_SIZE,
+
+    // bInterval: Poll as fast as possible
+    0x00
+    }
+};
+
+
+
+
+/*
+ * STRING DESCRIPTORS
+ *
+ * 2 bytes coding characters
+ *
+ * String descriptor 0 = Supported Languages
+ * String descriptor 1 = iManufacturer
+ * String descriptor 2 = iProduct
+*/
 __code unsigned char STRING_DESCRIPTOR_0[] =
 {
-    0x04,                           // bLength
-    USB_DESCRIPTOR_TYPE_STRING,     // bDescriptorType
-    0x09, 0x04                      //wLANGID[0] (English) ( usb languages specification (page 5) )
+    // bLength
+    0x04,
+
+    // bDescriptorType: String descriptor
+    USB_DESCRIPTOR_TYPE_STRING,
+
+    //wLANGID[0]: English (USB languages specification: page 5)
+    0x09, 0x04
 };
 
 
 __code unsigned char STRING_DESCRIPTOR_1[] =
 {
-    // String: "Silly-Bytes"
+    // bLength
+    0x24,
 
-    0x24,                           // bLength
-    USB_DESCRIPTOR_TYPE_STRING,     // bDescriptorType
-    'S', 0x00,                      // bString
+    // bDescriptorType: String descriptor
+    USB_DESCRIPTOR_TYPE_STRING,
+
+    // bString: "Silly-Bytes"
+    'S', 0x00,
     'i', 0x00,
     'l', 0x00,
     'l', 0x00,
@@ -325,11 +521,14 @@ __code unsigned char STRING_DESCRIPTOR_1[] =
 
 __code unsigned char STRING_DESCRIPTOR_2[] =
 {
-    // String: "Virtual COM port"
+    // bLength
+    0x34,
 
-    0x34,                           // bLength
-    USB_DESCRIPTOR_TYPE_STRING,     // bDescriptorType
-    'V', 0x00,                      // bString
+    // bDescriptorType: String descriptor
+    USB_DESCRIPTOR_TYPE_STRING,
+
+    // bString: "Virtual COM port"
+    'V', 0x00,
     'i', 0x00,
     'r', 0x00,
     't', 0x00,
@@ -349,9 +548,8 @@ __code unsigned char STRING_DESCRIPTOR_2[] =
 
 
 
-/******************************************************
- ******************************************************
- ******************************************************/
+/*******************************************************************************
+*******************************************************************************/
 
 
 
@@ -366,7 +564,7 @@ void usb_init(void)
     USB_DEVICE_ADDRESS = 0x00;
     USB_DEVICE_CURRENT_CONFIGURATION = 0x00;
 
-	// Clear all usb related registers
+	// Clear all USB related registers
 	UCON = 0;
 	UCFG = 0;
 	UIR = 0;
@@ -386,7 +584,7 @@ void usb_init(void)
 	UCFGbits.UPUEN = 1;
 	UCFGbits.FSEN = 1;
 
-	// Enable usb module
+	// Enable USB module
 	UCONbits.USBEN = 1;
 	USB_DEVICE_STATE = USB_STATE_ATTACHED;
 
@@ -406,29 +604,29 @@ void usb_init(void)
     UIEbits.SOFIE = 1; // Start of frame interrupt
     UIEbits.TRNIE = 1; // Transaction finish interrupt
     UIEbits.URSTIE = 1; // Reset interrupt
-    PIE2bits.USBIE = 1; // USB interrupts 
+    PIE2bits.USBIE = 1; // USB interrupts
 }
 
 
 
-/* Handles USB requests, states and transactions
- 
-  Always call this function using an IRQ like this:
- 
-  	void usb_isr(void) __shadowregs __interrupt 1
-  	{
-  		if( PIR2bits.USBIF )
-  		{
-  			usb_handler();
-  			PIR2bits.USBIF = 0;
-  		}
-  	}
- 
+/*
+ * Handles USB requests, states and transactions
+ *
+ *  Always call this function using an IRQ like this:
+ *
+ *  void usb_isr(void) __shadowregs __interrupt 1
+ *	{
+ *		if( PIR2bits.USBIF )
+ *		{
+ *			usb_handler();
+ *			PIR2bits.USBIF = 0;
+ *		}
+ *	}
+ *
  */
 void usb_handler(void)
 {
-    // If the device isn't in powered state avoid
-    // interrupt hanling
+    // If the device isn't in powered state avoid interrupt handling
     if( USB_DEVICE_STATE < USB_STATE_POWERED )
     {
         return;
@@ -441,10 +639,10 @@ void usb_handler(void)
         UIRbits.ACTVIF = 0;
 	}
 
-	// A idle condition has been detected
+	// An idle condition has been detected
 	if( UIRbits.IDLEIF && UIEbits.IDLEIE )
     {
-        // Do not suspend if not adressedd
+        // Do not suspend if the device is not addressed
         if( USB_DEVICE_STATE < USB_STATE_ADDRESS )
         {
             UCONbits.SUSPND = 0;
@@ -464,12 +662,11 @@ void usb_handler(void)
         UIRbits.STALLIF = 0;
 	}
 
-	// A error condition has been detected
+	// An error condition has been detected
 	if( UIRbits.UERRIF && UIEbits.UERRIE )
     {
         // Do nothing
-        // TODO: I guess we should do 
-        //       something about this...
+        // TODO: I guess we should do something about this...
 
         // UERRIF is Read Only, clear UEIR instead
         UEIR = 0;
@@ -489,25 +686,26 @@ void usb_handler(void)
         UIRbits.TRNIF = 0;
 	}
 
-	// A reset signal has been achived
+	// A reset signal has been achieved
 	if( UIRbits.URSTIF && UIEbits.URSTIE )
     {
         handle_urstif();
         UIRbits.URSTIF = 0;
-	} 
+	}
 }
 
 
 
 
-/***************  interrupt Handling  *************/
+
+              /***************  Interrupt Handlers  *************/
 
 /* Handles wake up events */
-static void handle_actvif(void) 
+static void handle_actvif(void)
 {
     // Resume power to SIE
     UCONbits.SUSPND = 0;
-    
+
     // Clear ACTVIF
     while( UIRbits.ACTVIF ){ UIRbits.ACTVIF = 0; }
 }
@@ -522,13 +720,13 @@ static void handle_idleif(void)
 
 
 /* Handles reset events */
-static void handle_urstif(void) 
-{ 
-    // Wipe interrupt flags
+static void handle_urstif(void)
+{
+    // Clear interrupt flags
     UIR = 0x00;
     UEIR = 0x00;
 
-    // Enpoint 0 configuration
+    // Endpoint 0 configuration
     UEP0bits.EPINEN = 1; // Endpoint 0 IN enabled
     UEP0bits.EPOUTEN = 1; // Endpoint 0 OUT enabled
     UEP0bits.EPHSHK = 1; // Endpoint 0 handshake enabled
@@ -541,25 +739,25 @@ static void handle_urstif(void)
     // Enable SIE packet processing
     UCONbits.PKTDIS = 0;
 
-    // Clear endpoin 0 buffer descriptors STAT
-    ENDPOINT0_OUT.STAT.stat = 0x00;
-    ENDPOINT0_IN.STAT.stat = 0x00;
 
-    // Configure endpoint 0 buffer descriptors
+    // Configure endpoint 0 buffer descriptors so we're ready to
+    // receive the first control transfer
+    ENDPOINT0_OUT.STAT.stat = 0x00; // Clear endpoint 0 buffer descriptors STAT
+    ENDPOINT0_IN.STAT.stat = 0x00;
     ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER; // Buffer memory address for out ep0
-    ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER; // Buffer memory address for in ep0 
-    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE; // Recive up to EP0_OUT_BUFFER_SIZE bytes
+    ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER; // Buffer memory address for in ep0
+    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE; // Receive up to EP0_OUT_BUFFER_SIZE bytes
     ENDPOINT0_OUT.STAT.UOWN = 1; // Give out buffer descriptor control to the SIE
     ENDPOINT0_IN.STAT.UOWN = 0; // Give in buffer descriptor control to the CORE
 
     // Device is now in default state
-    USB_DEVICE_STATE = USB_STATE_DEFAULT; 
+    USB_DEVICE_STATE = USB_STATE_DEFAULT;
 }
 
 
 /* Handles transactions by endpoint number */
 static void handle_trnif(void)
-{ 
+{
     // Transactions to ENDPOINT 0 (Control Transfers)
     if( USTATbits.ENDP == 0 )
     {
@@ -571,16 +769,16 @@ static void handle_trnif(void)
     // Transactions to ENDPOINT 1
     else if( USTATbits.ENDP == 1)
     {
-    } 
+    }
 
     // Transactions to ENDPOINT 2
     else if( USTATbits.ENDP == 2)
     {
-    } 
+    }
 
 
 
-    // Transactions to ENDPOINT N 
+    // Transactions to ENDPOINT N
 
 
 }
@@ -588,68 +786,339 @@ static void handle_trnif(void)
 
 
 
-/***************  Transfers Handling  *************/
+
+              /***************  Transfers Handlers  *************/
 
 
-/* Handles control transfers
-   
-   Optional SET_DESCRIPTOR request not implemented here,
-   so we don't need to worry about any DATA OUT STAGE.
-
-   We handle this 3 control transfer stages:
-        - OUT direction transactions
-            * SETUP stage
-            * STATUS stage
-        - IN direction transactions
-            * DATA IN stage
+/*
+ * Handles control transfers
+ *
+ * Optional SET_DESCRIPTOR request not implemented here, so we don't need to
+ * worry about any DATA OUT STAGE.
+ *
+ * Handle this 3 control transfer stages:
+ *      - OUT direction transactions
+ *          * SETUP stage
+ *          * STATUS stage
+ *      - IN direction transactions
+ *          * DATA IN stage
 */
 static void control_transfer_handler(void)
 {
     // Pending data to send during the control transfer
-    static unsigned char *data_to_send; 
+    static unsigned char *data_to_send;
 
     // Pending number of bytes to send during the control transfer
-    static unsigned int bytes_to_send;
+    static unsigned char bytes_to_send;
 
 
 
-    /*****  OUT direction transactions  (SETUP or STATUS stage)  *****/ 
-	if (USTATbits.DIR == 0) {
-
+    /*****  OUT direction transactions  (SETUP or STATUS stage)  *****/
+	if (USTATbits.DIR == 0)
+    {
         /*** SETUP transaction (SETUP stage) ***/
-		if (ENDPOINT0_OUT.STAT.PID == USB_PID_TOKEN_SETUP) {
-
-            // The cpu owns the endpoint 0 buffer descriptors
+		if (ENDPOINT0_OUT.STAT.PID == USB_PID_TOKEN_SETUP)
+        {
+            // The CPU owns the endpoint 0 buffer descriptors
             ENDPOINT0_IN.STAT.UOWN = 0;
             ENDPOINT0_OUT.STAT.UOWN = 0;
-            
 
-            /* Handle requests */
 
-            // GET_DESCRIPTOR
+            /*** Handle requests ***/
+
+            // GET_DESCRIPTOR request
             if ( SETUP_PACKET.bRequest == USB_REQUEST_GET_DESCRIPTOR )
-            { 
-                handle_request_get_descriptor();
-            }
+            {
+                handle_request_get_descriptor(&data_to_send, &bytes_to_send);
 
-        } 
+                // The descriptor fits in just one in transaction
+                if( bytes_to_send <= SETUP_PACKET.wLength )
+                {
+                    // Fill IN buffer with the whole descriptor
+                    int i=0;
+                    for( i; i<bytes_to_send; i++)
+                    {
+                        *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) =
+                            *( (__code unsigned char*) data_to_send + i);
+                    }
+
+
+                    // Prepare OUT buffer
+                    ENDPOINT0_OUT.STAT.stat = 0x00;
+                    ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+                    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+
+                    // Prepare IN buffer
+                    ENDPOINT0_IN.STAT.stat = 0x00;
+                    ENDPOINT0_IN.ADDR = (short)ENDPOINT0_IN_BUFFER;
+                    ENDPOINT0_IN.CNT = (unsigned char) bytes_to_send;
+
+                    // Update bytes_to_send, and data_to_send
+                    // to 0 (no more data to send)
+                    data_to_send = 0;
+                    bytes_to_send = 0;
+
+                    // Enable SIE packet processing
+                    UCONbits.PKTDIS = 0;
+
+                    // Give Buffer descriptors control to the SIE so the data
+                    // can be sent
+                    ENDPOINT0_OUT.STAT.UOWN = 1;
+                    ENDPOINT0_IN.STAT.UOWN = 1;
+
+
+                    return;
+                }
+                // The descriptor fits in multiple in transactions
+                else
+                {
+                    // Fill IN buffer with the first descriptor bytes
+                    int i=0;
+                    for( i; i<SETUP_PACKET.wLength; i++)
+                    {
+                        *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) =
+                            *( data_to_send + i);
+                    }
+
+                    // Prepare OUT buffer
+                    ENDPOINT0_OUT.STAT.stat = 0x00;
+                    ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+                    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+
+                    // Prepare IN buffer
+                    ENDPOINT0_IN.STAT.stat = 0x00;
+                    ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
+                    ENDPOINT0_IN.CNT = SETUP_PACKET.wLength;
+
+                    // Update bytes_to_send, and data_to_send
+                    data_to_send += SETUP_PACKET.wLength;
+                    bytes_to_send -= SETUP_PACKET.wLength;
+
+                    // Give Buffer descriptors control to the SIE so the data can be sent
+                    ENDPOINT0_OUT.STAT.UOWN = 1;
+                    ENDPOINT0_IN.STAT.UOWN = 1;
+
+                    return;
+                }
+            }
+        }
+        /*** OUT transaction (STATUS stage) ***/
+        else
+        {
+            /*
+             * The host has confirmed the end of the control transfer
+             * so we need to prepare everything for any future control transfer
+            */
+
+            // The CPU owns the endpoint 0 buffer descriptors
+            // (so we can modify them)
+            ENDPOINT0_IN.STAT.UOWN = 0;
+            ENDPOINT0_OUT.STAT.UOWN = 0;
+
+            // Configure endpoint 0 buffer descriptors so we're ready to
+            // receive the future control transfer
+            ENDPOINT0_OUT.STAT.stat = 0x00;
+            ENDPOINT0_IN.STAT.stat = 0x00;
+            ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+            ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
+            ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+            ENDPOINT0_OUT.STAT.UOWN = 1; // SIE controls OUT buffer
+            ENDPOINT0_IN.STAT.UOWN = 0; // CORE controls IN buffer
+
+            return;
+        }
+    }
+    /*****  IN direction transactions  (DATA IN stage)  *****/
+    else
+    {
+        // The CPU owns the endpoint 0 buffer descriptors
+        ENDPOINT0_IN.STAT.UOWN = 0;
+        ENDPOINT0_OUT.STAT.UOWN = 0;
+
+        // We have no more data to send, so send a 0 length packet to indicate
+        // the end of the data in stage (USB 2.0 spec: page 253)
+        if( bytes_to_send == 0 )
+        {
+            // Prepare OUT buffer
+            ENDPOINT0_OUT.STAT.stat = 0x00;
+            ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+            ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+
+            // Prepare IN buffer
+            ENDPOINT0_IN.STAT.stat = 0x00;
+            ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
+            ENDPOINT0_IN.CNT = 0; // 0 length packet
+
+            // Enable SIE packet processing
+            UCONbits.PKTDIS = 0;
+
+            // Give Buffer descriptors control to the SIE so the data can be sent
+            ENDPOINT0_OUT.STAT.UOWN = 1;
+            ENDPOINT0_IN.STAT.UOWN = 1;
+
+        }
+        // No more data to send
+        else
+        {
+            // The data fits in just one in transaction
+            if( bytes_to_send <= EP0_IN_BUFFER_SIZE )
+            {
+                // Fill IN buffer with the complete data
+                int i=0;
+                for( i; i<bytes_to_send; i++)
+                {
+                    *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) = *(
+                            data_to_send + i);
+                }
+
+                // Prepare OUT buffer
+                ENDPOINT0_OUT.STAT.stat = 0x00;
+                ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+                ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+
+                // Prepare IN buffer
+                ENDPOINT0_IN.STAT.stat = 0x00;
+                ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
+                ENDPOINT0_IN.CNT = bytes_to_send;
+
+                // Update bytes_to_send, and data_to_send
+                // to 0 (no more data to send)
+                data_to_send = 0;
+                bytes_to_send = 0;
+
+                // Give Buffer descriptors control to the SIE so the data can be sent
+                ENDPOINT0_OUT.STAT.UOWN = 1;
+                ENDPOINT0_IN.STAT.UOWN = 1;
+
+                // Enable SIE packet processing
+                UCONbits.PKTDIS = 0;
+
+                return;
+            }
+            // The data fits in multiple in transactions
+            else
+            {
+                // Fill IN buffer with the first data bytes
+                int i=0;
+                for( i; i<EP0_IN_BUFFER_SIZE; i++)
+                {
+                    *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) = *( data_to_send + i);
+                }
+
+                // Prepare OUT buffer
+                ENDPOINT0_OUT.STAT.stat = 0x00;
+                ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
+                ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+
+                // Prepare IN buffer
+                ENDPOINT0_IN.STAT.stat = 0x00;
+                ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
+                ENDPOINT0_IN.CNT = EP0_IN_BUFFER_SIZE;
+
+                // Update bytes_to_send, and data_to_send
+                data_to_send += SETUP_PACKET.wLength;
+                bytes_to_send -= SETUP_PACKET.wLength;
+
+                // Give Buffer descriptors control to the SIE so the data can be sent
+                ENDPOINT0_OUT.STAT.UOWN = 1;
+                ENDPOINT0_IN.STAT.UOWN = 1;
+
+                // Enable SIE packet processing
+                UCONbits.PKTDIS = 0;
+
+                return;
+            }
+        }
     }
 }
 
 
 
-/***************  Requests Handling  *************/
 
 
-/* Handle GET_DESCRIPTOR request
+              /***************  Requests Handlers  *************/
 
-   DESCRIPTOR pointer will point to the first byte
-   of the requested descriptor
 
-   SIZE will contain the total size in bytes of
-   the requested descriptor
+/*
+ * Handle GET_DESCRIPTOR request
+ *
+ * DESCRIPTOR pointer will point to the first byte of the requested descriptor
+ *
+ * SIZE will contain the total size in bytes of the requested descriptor
 */
-static void handle_request_get_descriptor(unsigned char *descriptor, unsigned int size)
+static void handle_request_get_descriptor(unsigned char **descriptor, unsigned char *size)
 {
-    PORTBbits.RB3 = 1;
+    // Descriptor type is the high byte of wValue field of the setup packet
+    // (USB 2.0 spec: page 253)
+    unsigned char descriptor_type = SETUP_PACKET.wValue1;
+
+    // Descriptor index is the low byte of wValue field of the setup packet
+    // (USB 2.0 spec: page 253)
+    unsigned char descriptor_index = SETUP_PACKET.wValue0;
+
+
+
+    // DEVICE DESCRIPTOR
+    if( descriptor_type == USB_DESCRIPTOR_TYPE_DEVICE )
+    {
+        // Memory position of the descriptor
+        *descriptor = (unsigned char*) &DEVICE_DESCRIPTOR;
+
+        // Size of the descriptor
+        *size = sizeof(DEVICE_DESCRIPTOR);
+
+        return;
+    }
+
+
+    // CONFIGURATION DESCRIPTOR
+    if( descriptor_type == USB_DESCRIPTOR_TYPE_CONFIGURATION )
+    {
+        // Memory position of the descriptor
+        *descriptor = (unsigned char*) &CONFIGURATION_0;
+
+        // Size of the descriptor
+        *size = sizeof(CONFIGURATION_0);
+
+        return;
+    }
+
+
+    // STRING DESCRIPTOR
+    if( descriptor_type == USB_DESCRIPTOR_TYPE_STRING )
+    {
+        // String 0
+        if( descriptor_index == 0 )
+        {
+            // Memory position of the descriptor
+            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_0;
+
+            // Size of the descriptor
+            *size = sizeof(STRING_DESCRIPTOR_0);
+        }
+
+
+        // String 1
+        if( descriptor_index == 1 )
+        {
+            // Memory position of the descriptor
+            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_1;
+
+            // Size of the descriptor
+            *size = sizeof(STRING_DESCRIPTOR_1);
+        }
+
+
+        // String 2
+        if( descriptor_index == 2 )
+        {
+            // Memory position of the descriptor
+            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_2;
+
+            // Size of the descriptor
+            *size = sizeof(STRING_DESCRIPTOR_2);
+        }
+
+        return;
+    }
 }
