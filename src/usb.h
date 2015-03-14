@@ -236,52 +236,52 @@ typedef struct
  */
 
 // Field: bEndpointAddress
-#define USB_ENDPOINT_00_OUT 0x00
-#define USB_ENDPOINT_00_IN 0x80
-#define USB_ENDPOINT_01_OUT 0x01
-#define USB_ENDPOINT_01_IN 0x81
-#define USB_ENDPOINT_02_OUT 0x02
-#define USB_ENDPOINT_02_IN 0x82
-#define USB_ENDPOINT_03_OUT 0x03
-#define USB_ENDPOINT_03_IN 0x83
-#define USB_ENDPOINT_04_OUT 0x04
-#define USB_ENDPOINT_04_IN 0x84
-#define USB_ENDPOINT_05_OUT 0x05
-#define USB_ENDPOINT_05_IN 0x85
-#define USB_ENDPOINT_06_OUT 0x06
-#define USB_ENDPOINT_06_IN 0x86
-#define USB_ENDPOINT_07_OUT 0x07
-#define USB_ENDPOINT_07_IN 0x87
-#define USB_ENDPOINT_08_OUT 0x08
-#define USB_ENDPOINT_08_IN 0x88
-#define USB_ENDPOINT_09_OUT 0x09
-#define USB_ENDPOINT_09_IN 0x89
-#define USB_ENDPOINT_10_OUT 0x0A
-#define USB_ENDPOINT_10_IN 0x8A
-#define USB_ENDPOINT_11_OUT 0x0B
-#define USB_ENDPOINT_11_IN 0x8B
-#define USB_ENDPOINT_12_OUT 0x0C
-#define USB_ENDPOINT_12_IN 0x8C
-#define USB_ENDPOINT_13_OUT 0x0D
-#define USB_ENDPOINT_13_IN 0x8D
-#define USB_ENDPOINT_14_OUT 0x0E
-#define USB_ENDPOINT_14_IN 0x8E
-#define USB_ENDPOINT_15_OUT 0x0F
-#define USB_ENDPOINT_15_IN 0x8F
+#define USB_EP_00_OUT 0x00
+#define USB_EP_00_IN 0x80
+#define USB_EP_01_OUT 0x01
+#define USB_EP_01_IN 0x81
+#define USB_EP_02_OUT 0x02
+#define USB_EP_02_IN 0x82
+#define USB_EP_03_OUT 0x03
+#define USB_EP_03_IN 0x83
+#define USB_EP_04_OUT 0x04
+#define USB_EP_04_IN 0x84
+#define USB_EP_05_OUT 0x05
+#define USB_EP_05_IN 0x85
+#define USB_EP_06_OUT 0x06
+#define USB_EP_06_IN 0x86
+#define USB_EP_07_OUT 0x07
+#define USB_EP_07_IN 0x87
+#define USB_EP_08_OUT 0x08
+#define USB_EP_08_IN 0x88
+#define USB_EP_09_OUT 0x09
+#define USB_EP_09_IN 0x89
+#define USB_EP_10_OUT 0x0A
+#define USB_EP_10_IN 0x8A
+#define USB_EP_11_OUT 0x0B
+#define USB_EP_11_IN 0x8B
+#define USB_EP_12_OUT 0x0C
+#define USB_EP_12_IN 0x8C
+#define USB_EP_13_OUT 0x0D
+#define USB_EP_13_IN 0x8D
+#define USB_EP_14_OUT 0x0E
+#define USB_EP_14_IN 0x8E
+#define USB_EP_15_OUT 0x0F
+#define USB_EP_15_IN 0x8F
 
 // Field: bmAttributes
 // This attributes should be logical ORed
-#define USB_ENDPOINT_CONTROL 0x00
-#define USB_ENDPOINT_ISOCHRONOUS 0x01
-#define USB_ENDPOINT_BULK 0x02
-#define USB_ENDPOINT_INTERRUPT 0x03
-#define USB_ENDPOINT_NO_SYNCHRONIZATION 0x00
-#define USB_ENDPOINT_ASYNCHRONOUS 0x04
-#define USB_ENDPOINT_ADAPTIVE 0x08
-#define USB_ENDPOINT_SYNCHRONOUS 0x12
-#define USB_ENDPOINT_DATA 0x00
-#define USB_ENDPOINT_FEEDBACK 0x10
-#define USB_ENDPOINT_IMPLICIT_FEEDBACK_DATA 0x20
+#define USB_EP_CONTROL 0x00
+#define USB_EP_ISOCHRONOUS 0x01
+#define USB_EP_BULK 0x02
+#define USB_EP_INTERRUPT 0x03
+#define USB_EP_NO_SYNCHRONIZATION 0x00
+#define USB_EP_ASYNCHRONOUS 0x04
+#define USB_EP_ADAPTIVE 0x08
+#define USB_EP_SYNCHRONOUS 0x12
+#define USB_EP_DATA 0x00
+#define USB_EP_FEEDBACK 0x10
+#define USB_EP_IMPLICIT_FEEDBACK_DATA 0x20
 
 
 typedef struct
@@ -292,9 +292,10 @@ typedef struct
 	unsigned char bmAttributes;
 	unsigned short wMaxPacketSize;
 	unsigned char bInterval;
-} USB_DESC_ENDPOINT_t;
+} USB_DESC_EP_t;
 
 /*******************************************************************************
 *******************************************************************************/
+
 
 #endif // _USB_H

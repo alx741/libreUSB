@@ -106,15 +106,15 @@ void usb_handler(void);
 #define EP0_IN_BUFFER_SIZE 64
 
 // Endpoint 0 buffers location
-#define ENDPOINT0_OUT_BUFFER  0x0500
-#define ENDPOINT0_IN_BUFFER  0x0508
+#define EP0_OUT_BUFFER  0x0500
+#define EP0_IN_BUFFER  0x0508
 
 // Endpoint 0 buffer descriptors allocation
-volatile BUFFER_DESC_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
-volatile BUFFER_DESC_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
+volatile BUFFER_DESC_t __at(0x0400 + (0 * 8)) EP0_OUT;
+volatile BUFFER_DESC_t __at(0x0404 + (0 * 8)) EP0_IN;
 
 // Setup Packet is allocated in the out endpoint 0 buffer
-volatile USB_SETUP_PACKET_t __at(ENDPOINT0_OUT_BUFFER) SETUP_PACKET;
+volatile USB_SETUP_PACKET_t __at(EP0_OUT_BUFFER) SETUP_PACKET;
 
 
 /*******************************************************************************
@@ -220,11 +220,11 @@ struct
             USB_CDC_DESC_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t FUNCTIONAL_DESC_ACM;
             USB_CDC_DESC_FUNCTIONAL_UNION_t FUNCTIONAL_DESC_UNION;
             USB_CDC_DESC_FUNCTIONAL_CALL_MANAGEMENT_t FUNCTIONAL_DESC_CALL_MANAGEMENT;
-            USB_DESC_ENDPOINT_t ENDPOINT_DESC_NOTIFICATION_ELEMENT;
+            USB_DESC_EP_t EP_DESC_NOTIFICATION_ELEMENT;
 
         USB_DESC_INTERFACE_t INTERFACE_DESC_DATA;
-            USB_DESC_ENDPOINT_t ENDPOINT_DESC_OUT;
-            USB_DESC_ENDPOINT_t ENDPOINT_DESC_IN;
+            USB_DESC_EP_t EP_DESC_OUT;
+            USB_DESC_EP_t EP_DESC_IN;
 }
 
 
@@ -374,16 +374,16 @@ __code CONFIGURATION_0 =
                  /* ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESC_ENDPOINT_t),
+    sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_ENDPOINT,
+    USB_DESC_TYPE_EP,
 
     // bEndpointAddress: In endpoint 2
-    USB_ENDPOINT_02_IN,
+    USB_EP_02_IN,
 
     // bmAttributes: Interrupt endpoint
-    USB_ENDPOINT_INTERRUPT,
+    USB_EP_INTERRUPT,
 
     // wMaxPacketSize: 64 bytes max packet
     0x40,
@@ -429,16 +429,16 @@ __code CONFIGURATION_0 =
                          /* ENDPOINT_DESCRIPTOR_OUT */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESC_ENDPOINT_t),
+    sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_ENDPOINT,
+    USB_DESC_TYPE_EP,
 
     // bEndpointAddress: Out endpoint 3
-    USB_ENDPOINT_03_OUT,
+    USB_EP_03_OUT,
 
     // bmAttributes: Bulk endpoint
-    USB_ENDPOINT_BULK,
+    USB_EP_BULK,
 
     // wMaxPacketSize: 64 bytes max packet
     USB_CDC_RX_BUFFER_SIZE,
@@ -452,16 +452,16 @@ __code CONFIGURATION_0 =
                           /* ENDPOINT_DESCRIPTOR_IN */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESC_ENDPOINT_t),
+    sizeof(USB_DESC_EP_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESC_TYPE_ENDPOINT,
+    USB_DESC_TYPE_EP,
 
     // bEndpointAddress: In endpoint 3
-    USB_ENDPOINT_03_IN,
+    USB_EP_03_IN,
 
     // bmAttributes: Bulk endpoint
-    USB_ENDPOINT_BULK,
+    USB_EP_BULK,
 
     // wMaxPacketSize: 64 bytes max packet
     USB_CDC_TX_BUFFER_SIZE,
@@ -742,13 +742,13 @@ static void handle_urstif(void)
 
     // Configure endpoint 0 buffer descriptors so we're ready to
     // receive the first control transfer
-    ENDPOINT0_OUT.STAT.stat = 0x00; // Clear endpoint 0 buffer descriptors STAT
-    ENDPOINT0_IN.STAT.stat = 0x00;
-    ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER; // Buffer memory address for out ep0
-    ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER; // Buffer memory address for in ep0
-    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE; // Receive up to EP0_OUT_BUFFER_SIZE bytes
-    ENDPOINT0_OUT.STAT.UOWN = 1; // Give out buffer descriptor control to the SIE
-    ENDPOINT0_IN.STAT.UOWN = 0; // Give in buffer descriptor control to the CORE
+    EP0_OUT.STAT.stat = 0x00; // Clear endpoint 0 buffer descriptors STAT
+    EP0_IN.STAT.stat = 0x00;
+    EP0_OUT.ADDR = EP0_OUT_BUFFER; // Buffer memory address for out ep0
+    EP0_IN.ADDR = EP0_IN_BUFFER; // Buffer memory address for in ep0
+    EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE; // Receive up to EP0_OUT_BUFFER_SIZE bytes
+    EP0_OUT.STAT.UOWN = 1; // Give out buffer descriptor control to the SIE
+    EP0_IN.STAT.UOWN = 0; // Give in buffer descriptor control to the CORE
 
     // Device is now in default state
     USB_DEVICE_STATE = USB_STATE_DEFAULT;
@@ -817,11 +817,11 @@ static void control_transfer_handler(void)
 	if (USTATbits.DIR == 0)
     {
         /*** SETUP transaction (SETUP stage) ***/
-		if (ENDPOINT0_OUT.STAT.PID == USB_PID_TOKEN_SETUP)
+		if (EP0_OUT.STAT.PID == USB_PID_TOKEN_SETUP)
         {
             // The CPU owns the endpoint 0 buffer descriptors
-            ENDPOINT0_IN.STAT.UOWN = 0;
-            ENDPOINT0_OUT.STAT.UOWN = 0;
+            EP0_IN.STAT.UOWN = 0;
+            EP0_OUT.STAT.UOWN = 0;
 
 
             /*** Handle requests ***/
@@ -838,20 +838,20 @@ static void control_transfer_handler(void)
                     int i=0;
                     for( i; i<bytes_to_send; i++)
                     {
-                        *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) =
+                        *( (__data unsigned char*) EP0_IN_BUFFER + i ) =
                             *( (__code unsigned char*) data_to_send + i);
                     }
 
 
                     // Prepare OUT buffer
-                    ENDPOINT0_OUT.STAT.stat = 0x00;
-                    ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-                    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+                    EP0_OUT.STAT.stat = 0x00;
+                    EP0_OUT.ADDR = EP0_OUT_BUFFER;
+                    EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
 
                     // Prepare IN buffer
-                    ENDPOINT0_IN.STAT.stat = 0x00;
-                    ENDPOINT0_IN.ADDR = (short)ENDPOINT0_IN_BUFFER;
-                    ENDPOINT0_IN.CNT = (unsigned char) bytes_to_send;
+                    EP0_IN.STAT.stat = 0x00;
+                    EP0_IN.ADDR = (short)EP0_IN_BUFFER;
+                    EP0_IN.CNT = (unsigned char) bytes_to_send;
 
                     // Update bytes_to_send, and data_to_send
                     // to 0 (no more data to send)
@@ -863,8 +863,8 @@ static void control_transfer_handler(void)
 
                     // Give Buffer descriptors control to the SIE so the data
                     // can be sent
-                    ENDPOINT0_OUT.STAT.UOWN = 1;
-                    ENDPOINT0_IN.STAT.UOWN = 1;
+                    EP0_OUT.STAT.UOWN = 1;
+                    EP0_IN.STAT.UOWN = 1;
 
 
                     return;
@@ -876,27 +876,27 @@ static void control_transfer_handler(void)
                     int i=0;
                     for( i; i<SETUP_PACKET.wLength; i++)
                     {
-                        *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) =
+                        *( (__data unsigned char*) EP0_IN_BUFFER + i ) =
                             *( data_to_send + i);
                     }
 
                     // Prepare OUT buffer
-                    ENDPOINT0_OUT.STAT.stat = 0x00;
-                    ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-                    ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+                    EP0_OUT.STAT.stat = 0x00;
+                    EP0_OUT.ADDR = EP0_OUT_BUFFER;
+                    EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
 
                     // Prepare IN buffer
-                    ENDPOINT0_IN.STAT.stat = 0x00;
-                    ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
-                    ENDPOINT0_IN.CNT = SETUP_PACKET.wLength;
+                    EP0_IN.STAT.stat = 0x00;
+                    EP0_IN.ADDR = EP0_IN_BUFFER;
+                    EP0_IN.CNT = SETUP_PACKET.wLength;
 
                     // Update bytes_to_send, and data_to_send
                     data_to_send += SETUP_PACKET.wLength;
                     bytes_to_send -= SETUP_PACKET.wLength;
 
                     // Give Buffer descriptors control to the SIE so the data can be sent
-                    ENDPOINT0_OUT.STAT.UOWN = 1;
-                    ENDPOINT0_IN.STAT.UOWN = 1;
+                    EP0_OUT.STAT.UOWN = 1;
+                    EP0_IN.STAT.UOWN = 1;
 
                     return;
                 }
@@ -912,18 +912,18 @@ static void control_transfer_handler(void)
 
             // The CPU owns the endpoint 0 buffer descriptors
             // (so we can modify them)
-            ENDPOINT0_IN.STAT.UOWN = 0;
-            ENDPOINT0_OUT.STAT.UOWN = 0;
+            EP0_IN.STAT.UOWN = 0;
+            EP0_OUT.STAT.UOWN = 0;
 
             // Configure endpoint 0 buffer descriptors so we're ready to
             // receive the future control transfer
-            ENDPOINT0_OUT.STAT.stat = 0x00;
-            ENDPOINT0_IN.STAT.stat = 0x00;
-            ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-            ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
-            ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
-            ENDPOINT0_OUT.STAT.UOWN = 1; // SIE controls OUT buffer
-            ENDPOINT0_IN.STAT.UOWN = 0; // CORE controls IN buffer
+            EP0_OUT.STAT.stat = 0x00;
+            EP0_IN.STAT.stat = 0x00;
+            EP0_OUT.ADDR = EP0_OUT_BUFFER;
+            EP0_IN.ADDR = EP0_IN_BUFFER;
+            EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+            EP0_OUT.STAT.UOWN = 1; // SIE controls OUT buffer
+            EP0_IN.STAT.UOWN = 0; // CORE controls IN buffer
 
             return;
         }
@@ -932,29 +932,29 @@ static void control_transfer_handler(void)
     else
     {
         // The CPU owns the endpoint 0 buffer descriptors
-        ENDPOINT0_IN.STAT.UOWN = 0;
-        ENDPOINT0_OUT.STAT.UOWN = 0;
+        EP0_IN.STAT.UOWN = 0;
+        EP0_OUT.STAT.UOWN = 0;
 
         // We have no more data to send, so send a 0 length packet to indicate
         // the end of the data in stage (USB 2.0 spec: page 253)
         if( bytes_to_send == 0 )
         {
             // Prepare OUT buffer
-            ENDPOINT0_OUT.STAT.stat = 0x00;
-            ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-            ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+            EP0_OUT.STAT.stat = 0x00;
+            EP0_OUT.ADDR = EP0_OUT_BUFFER;
+            EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
 
             // Prepare IN buffer
-            ENDPOINT0_IN.STAT.stat = 0x00;
-            ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
-            ENDPOINT0_IN.CNT = 0; // 0 length packet
+            EP0_IN.STAT.stat = 0x00;
+            EP0_IN.ADDR = EP0_IN_BUFFER;
+            EP0_IN.CNT = 0; // 0 length packet
 
             // Enable SIE packet processing
             UCONbits.PKTDIS = 0;
 
             // Give Buffer descriptors control to the SIE so the data can be sent
-            ENDPOINT0_OUT.STAT.UOWN = 1;
-            ENDPOINT0_IN.STAT.UOWN = 1;
+            EP0_OUT.STAT.UOWN = 1;
+            EP0_IN.STAT.UOWN = 1;
 
         }
         // No more data to send
@@ -967,19 +967,19 @@ static void control_transfer_handler(void)
                 int i=0;
                 for( i; i<bytes_to_send; i++)
                 {
-                    *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) = *(
+                    *( (__data unsigned char*) EP0_IN_BUFFER + i ) = *(
                             data_to_send + i);
                 }
 
                 // Prepare OUT buffer
-                ENDPOINT0_OUT.STAT.stat = 0x00;
-                ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-                ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+                EP0_OUT.STAT.stat = 0x00;
+                EP0_OUT.ADDR = EP0_OUT_BUFFER;
+                EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
 
                 // Prepare IN buffer
-                ENDPOINT0_IN.STAT.stat = 0x00;
-                ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
-                ENDPOINT0_IN.CNT = bytes_to_send;
+                EP0_IN.STAT.stat = 0x00;
+                EP0_IN.ADDR = EP0_IN_BUFFER;
+                EP0_IN.CNT = bytes_to_send;
 
                 // Update bytes_to_send, and data_to_send
                 // to 0 (no more data to send)
@@ -987,8 +987,8 @@ static void control_transfer_handler(void)
                 bytes_to_send = 0;
 
                 // Give Buffer descriptors control to the SIE so the data can be sent
-                ENDPOINT0_OUT.STAT.UOWN = 1;
-                ENDPOINT0_IN.STAT.UOWN = 1;
+                EP0_OUT.STAT.UOWN = 1;
+                EP0_IN.STAT.UOWN = 1;
 
                 // Enable SIE packet processing
                 UCONbits.PKTDIS = 0;
@@ -1002,26 +1002,26 @@ static void control_transfer_handler(void)
                 int i=0;
                 for( i; i<EP0_IN_BUFFER_SIZE; i++)
                 {
-                    *( (__data unsigned char*) ENDPOINT0_IN_BUFFER + i ) = *( data_to_send + i);
+                    *( (__data unsigned char*) EP0_IN_BUFFER + i ) = *( data_to_send + i);
                 }
 
                 // Prepare OUT buffer
-                ENDPOINT0_OUT.STAT.stat = 0x00;
-                ENDPOINT0_OUT.ADDR = ENDPOINT0_OUT_BUFFER;
-                ENDPOINT0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
+                EP0_OUT.STAT.stat = 0x00;
+                EP0_OUT.ADDR = EP0_OUT_BUFFER;
+                EP0_OUT.CNT = EP0_OUT_BUFFER_SIZE;
 
                 // Prepare IN buffer
-                ENDPOINT0_IN.STAT.stat = 0x00;
-                ENDPOINT0_IN.ADDR = ENDPOINT0_IN_BUFFER;
-                ENDPOINT0_IN.CNT = EP0_IN_BUFFER_SIZE;
+                EP0_IN.STAT.stat = 0x00;
+                EP0_IN.ADDR = EP0_IN_BUFFER;
+                EP0_IN.CNT = EP0_IN_BUFFER_SIZE;
 
                 // Update bytes_to_send, and data_to_send
                 data_to_send += SETUP_PACKET.wLength;
                 bytes_to_send -= SETUP_PACKET.wLength;
 
                 // Give Buffer descriptors control to the SIE so the data can be sent
-                ENDPOINT0_OUT.STAT.UOWN = 1;
-                ENDPOINT0_IN.STAT.UOWN = 1;
+                EP0_OUT.STAT.UOWN = 1;
+                EP0_IN.STAT.UOWN = 1;
 
                 // Enable SIE packet processing
                 UCONbits.PKTDIS = 0;

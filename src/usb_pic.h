@@ -95,16 +95,16 @@ typedef struct
  */
 
 // Endpoint 0 buffer descriptors
-extern volatile BUFFER_DESC_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
-extern volatile BUFFER_DESC_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
+extern volatile BUFFER_DESC_t __at(0x0400 + (0 * 8)) EP0_OUT;
+extern volatile BUFFER_DESC_t __at(0x0404 + (0 * 8)) EP0_IN;
 
 // Unused Endpoint 1-3 buffer descriptors
-//extern volatile BUFFER_DESC_t __at(0x0400 + 1 * 8) ENDPOINT1_OUT;
-//extern volatile BUFFER_DESC_t __at(0x0404 + 1 * 8) ENDPOINT1_IN;
-//extern volatile BUFFER_DESC_t __at(0x0400 + 2 * 8) ENDPOINT2_OUT;
-//extern volatile BUFFER_DESC_t __at(0x0404 + 2 * 8) ENDPOINT2_IN;
-//extern volatile BUFFER_DESC_t __at(0x0400 + 3 * 8) ENDPOINT3_OUT;
-//extern volatile BUFFER_DESC_t __at(0x0404 + 3 * 8) ENDPOINT3_IN;
+//extern volatile BUFFER_DESC_t __at(0x0400 + 1 * 8) EP1_OUT;
+//extern volatile BUFFER_DESC_t __at(0x0404 + 1 * 8) EP1_IN;
+//extern volatile BUFFER_DESC_t __at(0x0400 + 2 * 8) EP2_OUT;
+//extern volatile BUFFER_DESC_t __at(0x0404 + 2 * 8) EP2_IN;
+//extern volatile BUFFER_DESC_t __at(0x0400 + 3 * 8) EP3_OUT;
+//extern volatile BUFFER_DESC_t __at(0x0404 + 3 * 8) EP3_IN;
 
 /*******************************************************************************
 *******************************************************************************/
