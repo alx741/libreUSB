@@ -1,3 +1,5 @@
 scripts/
 bin/*
 tags
+src/uart.c
+src/uart.h
