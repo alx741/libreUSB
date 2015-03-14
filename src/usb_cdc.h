@@ -176,7 +176,7 @@ typedef struct
 	unsigned char bDescriptorType;
 	unsigned char bDescriptorSubType;
 	unsigned short bcdCDC;
-} USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t;
+} USB_CDC_DESC_FUNCTIONAL_HEADER_t;
 
 
 
@@ -194,7 +194,7 @@ typedef struct
 	unsigned char bDescriptorSubType;
 	unsigned char bControlInterface;
 	unsigned char bSubordinateInterface0;
-} USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t;
+} USB_CDC_DESC_FUNCTIONAL_UNION_t;
 
 
 
@@ -217,7 +217,7 @@ typedef struct
 	unsigned char bDescriptorSubType;
 	unsigned char bmCapabilities;
 	unsigned char bDataInterface;
-} USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t;
+} USB_CDC_DESC_FUNCTIONAL_CALL_MANAGEMENT_t;
 
 
 
@@ -238,7 +238,7 @@ typedef struct
 	unsigned char bDescriptorType;
 	unsigned char bDescriptorSubType;
 	unsigned char bmCapabilities;
-} USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t;
+} USB_CDC_DESC_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t;
 
 /*******************************************************************************
 *******************************************************************************/

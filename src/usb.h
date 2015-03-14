@@ -139,11 +139,11 @@ typedef struct
 *******************************************************************************/
 
 // Descriptor types used in field: bDescriptorType
-#define USB_DESCRIPTOR_TYPE_DEVICE 0x01
-#define USB_DESCRIPTOR_TYPE_CONFIGURATION 0x02
-#define USB_DESCRIPTOR_TYPE_STRING 0x03
-#define USB_DESCRIPTOR_TYPE_INTERFACE 0x04
-#define USB_DESCRIPTOR_TYPE_ENDPOINT 0x05
+#define USB_DESC_TYPE_DEVICE 0x01
+#define USB_DESC_TYPE_CONFIGURATION 0x02
+#define USB_DESC_TYPE_STRING 0x03
+#define USB_DESC_TYPE_INTERFACE 0x04
+#define USB_DESC_TYPE_ENDPOINT 0x05
 
 
 
@@ -174,7 +174,7 @@ typedef struct
 	unsigned char iProduct;
 	unsigned char iSerialNumber;
 	unsigned char bNumConfigurations;
-} USB_DESCRIPTOR_DEVICE_t;
+} USB_DESC_DEVICE_t;
 
 
 
@@ -202,7 +202,7 @@ typedef struct
 	unsigned char iConfiguration;
 	unsigned char bmAttributes;
 	unsigned char bMaxPower;
-} USB_DESCRIPTOR_CONFIGURATION_t;
+} USB_DESC_CONFIGURATION_t;
 
 
 
@@ -224,7 +224,7 @@ typedef struct
 	unsigned char bInterfaceSubClass;
 	unsigned char bInterfaceProtocol;
 	unsigned char iInterface;
-} USB_DESCRIPTOR_INTERFACE_t;
+} USB_DESC_INTERFACE_t;
 
 
 
@@ -292,7 +292,7 @@ typedef struct
 	unsigned char bmAttributes;
 	unsigned short wMaxPacketSize;
 	unsigned char bInterval;
-} USB_DESCRIPTOR_ENDPOINT_t;
+} USB_DESC_ENDPOINT_t;
 
 /*******************************************************************************
 *******************************************************************************/

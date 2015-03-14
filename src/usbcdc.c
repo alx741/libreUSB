@@ -110,8 +110,8 @@ void usb_handler(void);
 #define ENDPOINT0_IN_BUFFER  0x0508
 
 // Endpoint 0 buffer descriptors allocation
-volatile BUFFER_DESCRIPTOR_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
-volatile BUFFER_DESCRIPTOR_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
+volatile BUFFER_DESC_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
+volatile BUFFER_DESC_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
 
 // Setup Packet is allocated in the out endpoint 0 buffer
 volatile USB_SETUP_PACKET_t __at(ENDPOINT0_OUT_BUFFER) SETUP_PACKET;
@@ -139,13 +139,13 @@ volatile USB_SETUP_PACKET_t __at(ENDPOINT0_OUT_BUFFER) SETUP_PACKET;
  *
  * This is a CDC Device class descriptor with one configuration only
 */
-__code USB_DESCRIPTOR_DEVICE_t DEVICE_DESCRIPTOR =
+__code USB_DESC_DEVICE_t DEVICE_DESC =
 {
     // bLength: Total device descriptor size
-    sizeof(USB_DESCRIPTOR_DEVICE_t),
+    sizeof(USB_DESC_DEVICE_t),
 
     // bDescriptorType: Device descriptor
-    USB_DESCRIPTOR_TYPE_DEVICE,
+    USB_DESC_TYPE_DEVICE,
 
     // bcdUSB: USB 2.0 compliant device
     USB_DEVICE_BCDUSB,
@@ -213,18 +213,18 @@ __code USB_DESCRIPTOR_DEVICE_t DEVICE_DESCRIPTOR =
 
 struct
 {
-    USB_DESCRIPTOR_CONFIGURATION_t CONFIGURATION_DESCRIPTOR;
+    USB_DESC_CONFIGURATION_t CONFIGURATION_DESC;
 
-        USB_DESCRIPTOR_INTERFACE_t INTERFACE_DESCRIPTOR_COMMUNICATIONS;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t FUNCTIONAL_DESCRIPTOR_HEADER;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t FUNCTIONAL_DESCRIPTOR_ACM;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t FUNCTIONAL_DESCRIPTOR_UNION;
-            USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT;
-            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT;
+        USB_DESC_INTERFACE_t INTERFACE_DESC_COMMUNICATIONS;
+            USB_CDC_DESC_FUNCTIONAL_HEADER_t FUNCTIONAL_DESC_HEADER;
+            USB_CDC_DESC_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t FUNCTIONAL_DESC_ACM;
+            USB_CDC_DESC_FUNCTIONAL_UNION_t FUNCTIONAL_DESC_UNION;
+            USB_CDC_DESC_FUNCTIONAL_CALL_MANAGEMENT_t FUNCTIONAL_DESC_CALL_MANAGEMENT;
+            USB_DESC_ENDPOINT_t ENDPOINT_DESC_NOTIFICATION_ELEMENT;
 
-        USB_DESCRIPTOR_INTERFACE_t INTERFACE_DESCRIPTOR_DATA;
-            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_OUT;
-            USB_DESCRIPTOR_ENDPOINT_t ENDPOINT_DESCRIPTOR_IN;
+        USB_DESC_INTERFACE_t INTERFACE_DESC_DATA;
+            USB_DESC_ENDPOINT_t ENDPOINT_DESC_OUT;
+            USB_DESC_ENDPOINT_t ENDPOINT_DESC_IN;
 }
 
 
@@ -238,10 +238,10 @@ __code CONFIGURATION_0 =
                          /* CONFIGURATION_DESCRIPTOR */
     {
     // bLength:             Configuration Descriptor size
-    sizeof(USB_DESCRIPTOR_CONFIGURATION_t),
+    sizeof(USB_DESC_CONFIGURATION_t),
 
     // bDescriptorType:     Configuration descriptor
-    USB_DESCRIPTOR_TYPE_CONFIGURATION,
+    USB_DESC_TYPE_CONFIGURATION,
 
     // wTotalLength:        Whole configuration hierarchy size
     sizeof(CONFIGURATION_0),
@@ -267,10 +267,10 @@ __code CONFIGURATION_0 =
                    /* INTERFACE_DESCRIPTOR_COMMUNICATIONS */
     {
     // bLength: Interface Descriptor size
-    sizeof(USB_DESCRIPTOR_INTERFACE_t),
+    sizeof(USB_DESC_INTERFACE_t),
 
     // bDescriptorType: Interface descriptor
-    USB_DESCRIPTOR_TYPE_INTERFACE,
+    USB_DESC_TYPE_INTERFACE,
 
     // bInterfaceNumber: This is interface 0
     0x00,
@@ -299,7 +299,7 @@ __code CONFIGURATION_0 =
                        /* FUNCTIONAL_DESCRIPTOR_HEADER */
     {
     // bFunctionalLength: Header FD size
-    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_HEADER_t),
+    sizeof(USB_CDC_DESC_FUNCTIONAL_HEADER_t),
 
     // bDescriptorType: Interface descriptor type
     USB_CDC_FUNCTIONAL_CS_INTERFACE,
@@ -316,7 +316,7 @@ __code CONFIGURATION_0 =
                         /* FUNCTIONAL_DESCRIPTOR_ACM */
     {
     // bFunctionalLength: ACM FD size
-    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t),
+    sizeof(USB_CDC_DESC_FUNCTIONAL_ABSTRACT_CONTROL_MANAGEMENT_t),
 
     // bDescriptorType: Interface descriptor type
     USB_CDC_FUNCTIONAL_CS_INTERFACE,
@@ -333,7 +333,7 @@ __code CONFIGURATION_0 =
                        /* FUNCTIONAL_DESCRIPTOR_UNION */
     {
     // bFunctionalLength: Union FD size
-    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_UNION_t),
+    sizeof(USB_CDC_DESC_FUNCTIONAL_UNION_t),
 
     // bDescriptorType: Interface descriptor type
     USB_CDC_FUNCTIONAL_CS_INTERFACE,
@@ -354,7 +354,7 @@ __code CONFIGURATION_0 =
                   /* FUNCTIONAL_DESCRIPTOR_CALL_MANAGEMENT */
     {
     // bFunctionalLength: CM FD size
-    sizeof(USB_CDC_DESCRIPTOR_FUNCTIONAL_CALL_MANAGEMENT_t),
+    sizeof(USB_CDC_DESC_FUNCTIONAL_CALL_MANAGEMENT_t),
 
     // bDescriptorType: Interface descriptor type
     USB_CDC_FUNCTIONAL_CS_INTERFACE,
@@ -374,10 +374,10 @@ __code CONFIGURATION_0 =
                  /* ENDPOINT_DESCRIPTOR_NOTIFICATION_ELEMENT */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+    sizeof(USB_DESC_ENDPOINT_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESCRIPTOR_TYPE_ENDPOINT,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: In endpoint 2
     USB_ENDPOINT_02_IN,
@@ -397,10 +397,10 @@ __code CONFIGURATION_0 =
                         /* INTERFACE_DESCRIPTOR_DATA */
     {
     // bLength: Interface descriptor size
-    sizeof(USB_DESCRIPTOR_INTERFACE_t),
+    sizeof(USB_DESC_INTERFACE_t),
 
     // bDescriptorType: Interface descriptor
-    USB_DESCRIPTOR_TYPE_INTERFACE,
+    USB_DESC_TYPE_INTERFACE,
 
     // bInterfaceNumber: This is interface 1
     0x01,
@@ -429,10 +429,10 @@ __code CONFIGURATION_0 =
                          /* ENDPOINT_DESCRIPTOR_OUT */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+    sizeof(USB_DESC_ENDPOINT_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESCRIPTOR_TYPE_ENDPOINT,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: Out endpoint 3
     USB_ENDPOINT_03_OUT,
@@ -452,10 +452,10 @@ __code CONFIGURATION_0 =
                           /* ENDPOINT_DESCRIPTOR_IN */
     {
     // bLength: Endpoint descriptor size
-    sizeof(USB_DESCRIPTOR_ENDPOINT_t),
+    sizeof(USB_DESC_ENDPOINT_t),
 
     // bDescriptorType: Endpoint descriptor
-    USB_DESCRIPTOR_TYPE_ENDPOINT,
+    USB_DESC_TYPE_ENDPOINT,
 
     // bEndpointAddress: In endpoint 3
     USB_ENDPOINT_03_IN,
@@ -483,26 +483,26 @@ __code CONFIGURATION_0 =
  * String descriptor 1 = iManufacturer
  * String descriptor 2 = iProduct
 */
-__code unsigned char STRING_DESCRIPTOR_0[] =
+__code unsigned char STRING_DESC_0[] =
 {
     // bLength
     0x04,
 
     // bDescriptorType: String descriptor
-    USB_DESCRIPTOR_TYPE_STRING,
+    USB_DESC_TYPE_STRING,
 
     //wLANGID[0]: English (USB languages specification: page 5)
     0x09, 0x04
 };
 
 
-__code unsigned char STRING_DESCRIPTOR_1[] =
+__code unsigned char STRING_DESC_1[] =
 {
     // bLength
     0x24,
 
     // bDescriptorType: String descriptor
-    USB_DESCRIPTOR_TYPE_STRING,
+    USB_DESC_TYPE_STRING,
 
     // bString: "Silly-Bytes"
     'S', 0x00,
@@ -519,13 +519,13 @@ __code unsigned char STRING_DESCRIPTOR_1[] =
 };
 
 
-__code unsigned char STRING_DESCRIPTOR_2[] =
+__code unsigned char STRING_DESC_2[] =
 {
     // bLength
     0x34,
 
     // bDescriptorType: String descriptor
-    USB_DESCRIPTOR_TYPE_STRING,
+    USB_DESC_TYPE_STRING,
 
     // bString: "Virtual COM port"
     'V', 0x00,
@@ -1059,20 +1059,20 @@ static void handle_req_get_descriptor(unsigned char **descriptor, unsigned char 
 
 
     // DEVICE DESCRIPTOR
-    if( descriptor_type == USB_DESCRIPTOR_TYPE_DEVICE )
+    if( descriptor_type == USB_DESC_TYPE_DEVICE )
     {
         // Memory position of the descriptor
-        *descriptor = (unsigned char*) &DEVICE_DESCRIPTOR;
+        *descriptor = (unsigned char*) &DEVICE_DESC;
 
         // Size of the descriptor
-        *size = sizeof(DEVICE_DESCRIPTOR);
+        *size = sizeof(DEVICE_DESC);
 
         return;
     }
 
 
     // CONFIGURATION DESCRIPTOR
-    if( descriptor_type == USB_DESCRIPTOR_TYPE_CONFIGURATION )
+    if( descriptor_type == USB_DESC_TYPE_CONFIGURATION )
     {
         // Memory position of the descriptor
         *descriptor = (unsigned char*) &CONFIGURATION_0;
@@ -1085,16 +1085,16 @@ static void handle_req_get_descriptor(unsigned char **descriptor, unsigned char 
 
 
     // STRING DESCRIPTOR
-    if( descriptor_type == USB_DESCRIPTOR_TYPE_STRING )
+    if( descriptor_type == USB_DESC_TYPE_STRING )
     {
         // String 0
         if( descriptor_index == 0 )
         {
             // Memory position of the descriptor
-            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_0;
+            *descriptor = (unsigned char*) &STRING_DESC_0;
 
             // Size of the descriptor
-            *size = sizeof(STRING_DESCRIPTOR_0);
+            *size = sizeof(STRING_DESC_0);
         }
 
 
@@ -1102,10 +1102,10 @@ static void handle_req_get_descriptor(unsigned char **descriptor, unsigned char 
         if( descriptor_index == 1 )
         {
             // Memory position of the descriptor
-            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_1;
+            *descriptor = (unsigned char*) &STRING_DESC_1;
 
             // Size of the descriptor
-            *size = sizeof(STRING_DESCRIPTOR_1);
+            *size = sizeof(STRING_DESC_1);
         }
 
 
@@ -1113,10 +1113,10 @@ static void handle_req_get_descriptor(unsigned char **descriptor, unsigned char 
         if( descriptor_index == 2 )
         {
             // Memory position of the descriptor
-            *descriptor = (unsigned char*) &STRING_DESCRIPTOR_2;
+            *descriptor = (unsigned char*) &STRING_DESC_2;
 
             // Size of the descriptor
-            *size = sizeof(STRING_DESCRIPTOR_2);
+            *size = sizeof(STRING_DESC_2);
         }
 
         return;
