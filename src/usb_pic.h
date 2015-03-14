@@ -3,8 +3,8 @@
  * Compiler: sdcc (Version 3.4.0)
  *
  *
- * [!] This file cotains USB definitions for PIC18F4550 microtroller
- * 	   described by the datasheet at microchip.com
+ * [!] This file contains USB definitions for PIC18F4550 microtroller described
+ * by the datasheet
  *
  *
  *
@@ -27,14 +27,11 @@
 #define _USB_PIC_H
 
 
-/************************************************
- * **********************************************
- *
- * BUFFER DESCRIPTOR
- * (PIC18F4550 datasheet, page 176, table 17-5)
- *
- * **********************************************
- ************************************************/
+/*******************************************************************************
+                               BUFFER DESCRIPTOR
+
+                 See PIC18F4550 datasheet: page 176 table 17-5
+*******************************************************************************/
 
 
 typedef struct
@@ -80,29 +77,37 @@ typedef struct
 } BUFFER_DESCRIPTOR_t;
 
 
-/*--------------------------------------------------------
- * BUFFER DESCRIPTORS allocation in data memory
- * (PIC18F4550 datasheet, page 175, figure 17-7)
+
+/*
+ * ----------------------------------------------------------------
+ *                       BUFFER DESCRIPTORS
  *
- * Endpoints buffer descriptors are allocated after 400h
- * each BD take 4 bytes
+ * See PIC18F4550 datasheet: page 175 figure 17-7
  *
- * ( base_direction + endpoint_number * 8 )
+ * - Endpoints buffer descriptors are allocated after 400h
+ * - Each BD take 4 bytes
  *
- * base_direction: (OUT endpoint = 400), (IN endpoint = 404)
+ * Memory position formula: (base_direction + endpoint_number * 8)
  *
- *------------------------------------------------------*/
+ * Base direction: (OUT endpoint = 400), (IN endpoint = 404)
+ *
+ *------------------------------------------------------------------
+ */
 
 // Endpoint 0 buffer descriptors
 extern volatile BUFFER_DESCRIPTOR_t __at(0x0400 + (0 * 8)) ENDPOINT0_OUT;
 extern volatile BUFFER_DESCRIPTOR_t __at(0x0404 + (0 * 8)) ENDPOINT0_IN;
 
+// Unused Endpoint 1-3 buffer descriptors
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0400 + 1 * 8) ENDPOINT1_OUT;
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0404 + 1 * 8) ENDPOINT1_IN;
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0400 + 2 * 8) ENDPOINT2_OUT;
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0404 + 2 * 8) ENDPOINT2_IN;
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0400 + 3 * 8) ENDPOINT3_OUT;
 //extern volatile BUFFER_DESCRIPTOR_t __at(0x0404 + 3 * 8) ENDPOINT3_IN;
+
+/*******************************************************************************
+*******************************************************************************/
 
 
 #endif // _USB_PIC_H
