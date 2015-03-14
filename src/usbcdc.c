@@ -70,16 +70,16 @@ void usb_handler(void);
         static void control_transfer_handler(void);
 
             // Requests handling
-            static void handle_request_get_status(void);
-            static void handle_request_clear_feature(void);
-            static void handle_request_set_feature(void);
-            static void handle_request_set_address(void);
-            static void handle_request_get_descriptor(unsigned char
+            static void handle_req_get_status(void);
+            static void handle_req_clear_feature(void);
+            static void handle_req_set_feature(void);
+            static void handle_req_set_address(void);
+            static void handle_req_get_descriptor(unsigned char
                     **descriptor, unsigned char *size);
-            static void handle_request_get_configuration(void);
-            static void handle_request_set_configuration(void);
-            static void handle_request_get_interface(void);
-            static void handle_request_set_interface(void);
+            static void handle_req_get_configuration(void);
+            static void handle_req_set_configuration(void);
+            static void handle_req_get_interface(void);
+            static void handle_req_set_interface(void);
 
 
 /*******************************************************************************
@@ -827,9 +827,9 @@ static void control_transfer_handler(void)
             /*** Handle requests ***/
 
             // GET_DESCRIPTOR request
-            if ( SETUP_PACKET.bRequest == USB_REQUEST_GET_DESCRIPTOR )
+            if ( SETUP_PACKET.bRequest == USB_REQ_GET_DESCRIPTOR )
             {
-                handle_request_get_descriptor(&data_to_send, &bytes_to_send);
+                handle_req_get_descriptor(&data_to_send, &bytes_to_send);
 
                 // The descriptor fits in just one in transaction
                 if( bytes_to_send <= SETUP_PACKET.wLength )
@@ -1046,7 +1046,7 @@ static void control_transfer_handler(void)
  *
  * SIZE will contain the total size in bytes of the requested descriptor
 */
-static void handle_request_get_descriptor(unsigned char **descriptor, unsigned char *size)
+static void handle_req_get_descriptor(unsigned char **descriptor, unsigned char *size)
 {
     // Descriptor type is the high byte of wValue field of the setup packet
     // (USB 2.0 spec: page 253)

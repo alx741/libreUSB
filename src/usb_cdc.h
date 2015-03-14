@@ -67,15 +67,15 @@ extern volatile unsigned char USB_CDC_TX_BUFFER;
                 See USB 2.0: PSTN specification page 19 table 11
 *******************************************************************************/
 
-#define USB_CDC_REQUEST_SEND_ENCAPSULATED_COMMAND 0x00
-#define USB_CDC_REQUEST_GET_ENCAPSULATED_RESPONSE 0x01
-#define USB_CDC_REQUEST_SET_COMM_FEATURE 0x02
-#define USB_CDC_REQUEST_GET_COMM_FEATURE 0x03
-#define USB_CDC_REQUEST_CLEAR_COMM_FEATURE 0x04
-#define USB_CDC_REQUEST_SET_LINE_CODING 0x20
-#define USB_CDC_REQUEST_GET_LINE_CODING 0x21
-#define USB_CDC_REQUEST_SET_CONTROL_LINE_STATE 0x22
-#define USB_CDC_REQUEST_SEND_BREAK 0x23
+#define USB_CDC_REQ_SEND_ENCAPSULATED_COMMAND 0x00
+#define USB_CDC_REQ_GET_ENCAPSULATED_RESPONSE 0x01
+#define USB_CDC_REQ_SET_COMM_FEATURE 0x02
+#define USB_CDC_REQ_GET_COMM_FEATURE 0x03
+#define USB_CDC_REQ_CLEAR_COMM_FEATURE 0x04
+#define USB_CDC_REQ_SET_LINE_CODING 0x20
+#define USB_CDC_REQ_GET_LINE_CODING 0x21
+#define USB_CDC_REQ_SET_CONTROL_LINE_STATE 0x22
+#define USB_CDC_REQ_SEND_BREAK 0x23
 
 /*******************************************************************************
 *******************************************************************************/
