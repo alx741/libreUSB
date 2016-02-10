@@ -4,7 +4,7 @@
 LibreUSB
 ========
 
-![LOGO](logo.png)
+![LOGO](./logo.png)
 
 This is a USB/CDC implementation for PIC18F4550 uC using SDCC compiler [link here].
 
