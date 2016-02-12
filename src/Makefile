@@ -1,7 +1,7 @@
-BINDIR = ../bin
 CC = sdcc
 CFLAGS = --use-non-free -V -mpic16 -p18f4550
 SCRIPTS = ../scripts
+BINDIR = ../bin
 
 firmware: example.hex
 	cp example.hex $(BINDIR)/
@@ -27,3 +27,8 @@ flash:
 
 clean:
 	rm -f $(BINDIR)/*
+	rm -f *.o
+	rm -f *.lst
+	rm -f *.asm
+	rm -f *.cod
+	rm -f *.hex
