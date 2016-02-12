@@ -22,7 +22,7 @@ example.hex: example.o
 	${CC} ${CFLAGS} example.o usbcdc.o uart.o printf.o
 
 
-flash:
+flash: firmware
 	$(SCRIPTS)/write_fw.sh
 
 clean:
